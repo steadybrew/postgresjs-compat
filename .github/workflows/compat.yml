@@ -41,7 +41,7 @@ jobs:
     name: ${{ matrix.target }} (${{ matrix.variant }})
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 120
     permissions:
       contents: read
     strategy:
@@ -56,6 +56,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - env:
           DATABASES: ${{ matrix.databases }}
+          PG_PACKAGES: ${{ matrix.packages }}
         run: bash scripts/setup-postgres.sh $DATABASES
       - env:
           TARGET: ${{ matrix.target }}
@@ -90,8 +91,10 @@ jobs:
           MIGRATE: ${{ needs.plan.outputs.migrate }}
           RESULTS: ${{ runner.temp }}/results
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PARTIAL: ${{ inputs.targets != '' }}
         run: node runner/compare.mjs "$VERSION" "$MIGRATE" "$RESULTS" "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
-      - env:
+      - if: inputs.targets == ''
+        env:
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           git config user.name 'github-actions[bot]'

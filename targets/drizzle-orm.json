@@ -1,0 +1,20 @@
+{
+  "repo": "drizzle-team/drizzle-orm",
+  "tag": "0.45.4",
+  "ref": "eab8bedbb65d5429c54e612ddbd88aa23091d398",
+  "node": "22",
+  "databases": ["drizzle", "drizzle_postgis", "drizzle_vector"],
+  "packages": ["postgresql-17-postgis-3", "postgresql-17-pgvector"],
+  "workdir": "integration-tests",
+  "env": {
+    "PG_CONNECTION_STRING": "postgres://postgres:postgres@localhost:5432/drizzle",
+    "PG_POSTGIS_CONNECTION_STRING": "postgres://postgres:postgres@localhost:5432/drizzle_postgis",
+    "PG_VECTOR_CONNECTION_STRING": "postgres://postgres:postgres@localhost:5432/drizzle_vector",
+    "SKIP_EXTERNAL_DB_TESTS": "1"
+  },
+  "resolve": ["integration-tests", "drizzle-orm"],
+  "install": "pnpm install --no-frozen-lockfile",
+  "build": "pnpm --dir .. build:orm",
+  "test": "pnpm exec vitest run tests/pg/postgres-js.test.ts tests/relational/pg.postgresjs.test.ts tests/extensions/postgis/postgres.test.ts tests/extensions/vectors/postgres.test.ts js-tests/driver-init/module/postgres-js.test.mjs js-tests/driver-init/commonjs/postgres-js.test.cjs --reporter=default --reporter=json --outputFile.json={report}",
+  "timeoutMinutes": 40
+}

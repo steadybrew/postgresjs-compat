@@ -16,7 +16,7 @@ if ! sudo grep -Rq 'apt.postgresql.org' /etc/apt/sources.list.d /etc/apt/sources
     sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
 fi
 sudo apt-get update
-sudo apt-get -y install "postgresql-$version"
+sudo apt-get -y install "postgresql-$version" ${PG_PACKAGES:-}
 config="/etc/postgresql/$version/main"
 [[ -d "$config" ]] || sudo pg_createcluster "$version" main --port 5432
 printf 'local all all peer\nhost all all 127.0.0.1/32 scram-sha-256\nhost all all ::1/128 scram-sha-256\n' |

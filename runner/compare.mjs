@@ -62,25 +62,27 @@ const md = [
     : [])
 ].join('\n') + '\n'
 
-mkdirSync(resultsDir, { recursive: true })
-writeFileSync(new URL(version + '.md', resultsDir), md)
-writeFileSync(new URL(version + '.json', resultsDir), JSON.stringify({
-  version,
-  migrate,
-  date,
-  run: runUrl || null,
-  targets: Object.fromEntries(summary.map(s => [s.name, {
-    repo: s.target.repo || null,
-    fixture: s.target.fixture || null,
-    tag: s.target.tag,
-    ref: s.target.ref,
-    regressions: s.regressions,
-    fixed: s.fixed,
-    bothFailing: s.bothFailing,
-    baseline: s.baseline,
-    fork: s.fork
-  }]))
-}, null, 1) + '\n')
+if (process.env.PARTIAL !== 'true') {
+  mkdirSync(resultsDir, { recursive: true })
+  writeFileSync(new URL(version + '.md', resultsDir), md)
+  writeFileSync(new URL(version + '.json', resultsDir), JSON.stringify({
+    version,
+    migrate,
+    date,
+    run: runUrl || null,
+    targets: Object.fromEntries(summary.map(s => [s.name, {
+      repo: s.target.repo || null,
+      fixture: s.target.fixture || null,
+      tag: s.target.tag,
+      ref: s.target.ref,
+      regressions: s.regressions,
+      fixed: s.fixed,
+      bothFailing: s.bothFailing,
+      baseline: s.baseline,
+      fork: s.fork
+    }]))
+  }, null, 1) + '\n')
+}
 
 process.stdout.write(md)
 process.exit(summary.some(s => s.regressions.length) || !summary.length ? 1 : 0)
