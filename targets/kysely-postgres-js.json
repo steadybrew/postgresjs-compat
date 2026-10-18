@@ -1,0 +1,14 @@
+{
+  "repo": "kysely-org/kysely-postgres-js",
+  "tag": "v5.0.1",
+  "ref": "b15d80ee9f65f84fced5000606701fb44e767e86",
+  "node": "24",
+  "databases": ["main"],
+  "append": {
+    "pnpm-workspace.yaml": "minimumReleaseAgeExclude:\n  - '@steadybrew/postgresjs'\n"
+  },
+  "install": "pnpm install --no-frozen-lockfile",
+  "build": "pnpm build",
+  "test": "pnpm exec vitest run --reporter=default --reporter=json --outputFile.json={report}",
+  "timeoutMinutes": 15
+}
