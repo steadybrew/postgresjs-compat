@@ -41,7 +41,8 @@ const summary = names.map(name => {
     else if (before === 'failed' && after === 'failed')
       bothFailing.push(id)
   }
-  return { name, target, baseline, fork, bothPassing, regressions, fixed, bothFailing }
+  const harness = Object.entries(baseline?.steps || {}).filter(([step, s]) => step !== 'test' && !passed(s.status)).map(([step]) => step)
+  return { name, target, baseline, fork, bothPassing, regressions, fixed, bothFailing, harness }
 })
 
 const date = new Date().toISOString().slice(0, 10)
@@ -57,8 +58,8 @@ const md = [
   '| Library | Version | Passing on both | Regressions | Fixed by the fork | Failing on both |',
   '| --- | --- | --- | --- | --- | --- |',
   ...summary.map(s => '| ' + link(s) + ' | ' + s.target.tag + ' | ' + s.bothPassing + ' | ' + s.regressions.length + ' | ' + s.fixed.length + ' | ' + s.bothFailing.length + ' |'),
-  ...summary.flatMap(s => s.regressions.length || s.fixed.length || s.bothFailing.length
-    ? ['', '## ' + s.name, ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
+  ...summary.flatMap(s => s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
+    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**The run with 3.4.9 failed at: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
     : [])
 ].join('\n') + '\n'
 
@@ -85,4 +86,4 @@ if (process.env.PARTIAL !== 'true') {
 }
 
 process.stdout.write(md)
-process.exit(summary.some(s => s.regressions.length) || !summary.length ? 1 : 0)
+process.exit(summary.some(s => s.regressions.length || s.harness.length) || !summary.length ? 1 : 0)

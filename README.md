@@ -10,6 +10,8 @@ For each library in [`targets/`](targets):
 2. Run its tests twice on that checkout: once with the alias replaced by `postgres` 3.4.9, once with the fork version under test.
 3. Compare. A **regression** is a test or step that passes with 3.4.9 and fails with the fork. Tests that fail with both are listed but not counted, and so are tests the fork fixes.
 
+If a setup step fails with 3.4.9, the harness is broken for that library and the run fails.
+
 PostgreSQL 17 is installed from apt on the runner, one cluster for both runs.
 
 ## Results
@@ -33,5 +35,6 @@ Add `targets/<name>.json`:
 | `env` | Extra environment variables |
 | `append` | Text to append to files after the switch, such as pnpm settings |
 | `install`, `build`, `test` | Commands; `{report}` in `test` is the path for vitest's JSON report |
+| `buildBeforeSwitch` | Install and build with the library's own lockfile before switching, as its published build is made |
 | `resolve` | Directories whose `node_modules/postgres` must be the version under test (default: the root) |
 | `timeoutMinutes` | Limit for each command |

@@ -65,30 +65,36 @@ const spec = variant === 'fork' ? 'npm:@steadybrew/postgresjs@' + version : '3.4
 const want = variant === 'fork' ? '@steadybrew/postgresjs@' + version : 'postgres@3.4.9'
 const resolved = {}
 
-run('switch', 'npx -y @steadybrew/postgresjs-migrate@' + migrate + ' . --switch', repo)
-writeFileSync(join(out, 'switch.diff'), git(repo, 'diff'))
-const changed = git(repo, 'diff', '--name-only').split('\n').filter(Boolean)
-let replaced = 0
-for (const file of changed) {
-  const path = join(repo, file)
-  const text = readFileSync(path, 'utf8')
-  if (!text.includes(alias))
-    continue
-  writeFileSync(path, text.replaceAll(alias, spec))
-  replaced++
-}
-if (steps.switch.status === 'passed' && !changed.length)
-  fail('switch', 'the switch changed no files')
-else if (steps.switch.status === 'passed' && !replaced)
-  fail('switch', 'no file contains ' + alias)
-
-for (const [file, text] of Object.entries(target.append || {}))
-  appendFileSync(join(repo, file), '\n' + text)
-
 const packageManager = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).packageManager || ''
-const ready = steps.switch.status === 'passed'
-  && (!packageManager.startsWith('pnpm@') || run('pnpm', 'npm install -g ' + packageManager.split('+')[0], repo))
-  && run('install', target.install)
+let ready = !packageManager.startsWith('pnpm@') || run('pnpm', 'npm install -g ' + packageManager.split('+')[0], repo)
+if (ready && target.buildBeforeSwitch)
+  ready = run('original-install', target.install) && run('build', target.build)
+
+if (ready) {
+  run('switch', 'npx -y @steadybrew/postgresjs-migrate@' + migrate + ' . --switch', repo)
+  writeFileSync(join(out, 'switch.diff'), git(repo, 'diff'))
+  const changed = git(repo, 'diff', '--name-only').split('\n').filter(Boolean)
+  let replaced = 0
+  for (const file of changed) {
+    const path = join(repo, file)
+    const text = readFileSync(path, 'utf8')
+    if (!text.includes(alias))
+      continue
+    writeFileSync(path, text.replaceAll(alias, spec))
+    replaced++
+  }
+  if (steps.switch.status === 'passed' && !changed.length)
+    fail('switch', 'the switch changed no files')
+  else if (steps.switch.status === 'passed' && !replaced)
+    fail('switch', 'no file contains ' + alias)
+  ready = steps.switch.status === 'passed'
+}
+
+if (ready) {
+  for (const [file, text] of Object.entries(target.append || {}))
+    appendFileSync(join(repo, file), '\n' + text)
+  ready = run('install', target.install)
+}
 
 if (ready) {
   steps.resolve = { status: 'passed' }
@@ -101,7 +107,7 @@ if (ready) {
     if (resolved[dir] !== want)
       fail('resolve', dir + ' resolves postgres to ' + resolved[dir] + ', not ' + want)
   }
-  target.build && run('build', target.build)
+  target.build && !target.buildBeforeSwitch && run('build', target.build)
   run('test', target.test.replaceAll('{report}', report))
 }
 
