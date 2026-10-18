@@ -1,0 +1,12 @@
+{
+  "fixture": "drizzle-kit-push",
+  "tag": "drizzle-kit 0.31.11, drizzle-orm 0.45.4",
+  "node": "24",
+  "databases": ["drizzle_kit"],
+  "env": {
+    "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/drizzle_kit"
+  },
+  "install": "npm install --no-audit --no-fund",
+  "test": "npx vitest run --reporter=default --reporter=json --outputFile.json={report}",
+  "timeoutMinutes": 10
+}

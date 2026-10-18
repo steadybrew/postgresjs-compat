@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { appendFileSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
@@ -51,8 +51,14 @@ const installed = dir => {
 }
 
 git(scratch, 'init', '-q', 'repo')
-git(repo, 'fetch', '-q', '--depth', '1', 'https://github.com/' + target.repo + '.git', target.ref)
-git(repo, 'checkout', '-q', 'FETCH_HEAD')
+if (target.fixture) {
+  cpSync(new URL('../fixtures/' + target.fixture, import.meta.url), repo, { recursive: true })
+  git(repo, 'add', '-A')
+  git(repo, '-c', 'user.name=compat', '-c', 'user.email=compat@localhost', 'commit', '-q', '-m', 'fixture')
+} else {
+  git(repo, 'fetch', '-q', '--depth', '1', 'https://github.com/' + target.repo + '.git', target.ref)
+  git(repo, 'checkout', '-q', 'FETCH_HEAD')
+}
 
 const alias = 'npm:@steadybrew/postgresjs@^4'
 const spec = variant === 'fork' ? 'npm:@steadybrew/postgresjs@' + version : '3.4.9'
@@ -118,7 +124,8 @@ if (existsSync(report)) {
 
 writeFileSync(join(out, 'result.json'), JSON.stringify({
   target: name,
-  repo: target.repo,
+  repo: target.repo || null,
+  fixture: target.fixture || null,
   tag: target.tag,
   ref: target.ref,
   variant,

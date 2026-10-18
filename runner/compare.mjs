@@ -45,7 +45,7 @@ const summary = names.map(name => {
 })
 
 const date = new Date().toISOString().slice(0, 10)
-const link = s => '[' + s.name + '](https://github.com/' + s.target.repo + '/tree/' + s.target.ref + ')'
+const link = s => '[' + s.name + '](' + (s.target.fixture ? '../fixtures/' + s.target.fixture : 'https://github.com/' + s.target.repo + '/tree/' + s.target.ref) + ')'
 const list = (title, rows) => rows.length ? ['', '### ' + title, '', ...rows.map(r => '- `' + r + '`')] : []
 const md = [
   '# @steadybrew/postgresjs ' + version,
@@ -70,7 +70,8 @@ writeFileSync(new URL(version + '.json', resultsDir), JSON.stringify({
   date,
   run: runUrl || null,
   targets: Object.fromEntries(summary.map(s => [s.name, {
-    repo: s.target.repo,
+    repo: s.target.repo || null,
+    fixture: s.target.fixture || null,
     tag: s.target.tag,
     ref: s.target.ref,
     regressions: s.regressions,
