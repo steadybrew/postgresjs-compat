@@ -1,13 +1,14 @@
 {
  "date": "2026-10-22",
- "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/39806479240",
+ "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/39809854954",
  "fork": "4.6.0",
  "published": {
   "variant": "published",
   "paperclip": "2026.1012.0",
+  "install": "paperclipai@2026.1012.0 from npm",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
   "fork": null,
-  "node": "v24.22.1",
+  "node": "v24.21.0",
   "manifest": {
    "name": "paperclip-packaged-check",
    "private": true,
@@ -86,6 +87,7 @@
  "override": {
   "variant": "override",
   "paperclip": "2026.1012.0",
+  "install": "paperclipai@2026.1012.0 from npm",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
   "fork": "4.6.0",
   "node": "v24.22.1",
@@ -140,6 +142,170 @@
     "version": "2026.1012.0",
     "location": "node_modules/@paperclipai/db",
     "declares": "^3.4.9",
+    "driver": {
+     "id": "@steadybrew/postgresjs@4.6.0",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   }
+  ],
+  "fixture": {
+   "url": "https://raw.githubusercontent.com/paperclipai/paperclip/bba6a45f0d364cfd962ac59b3bdf2426a8222adb/packages/db/src/__fixtures__/postgres-connection-recovery.mjs",
+   "sha256": "2a85d9fc5840866fbf1ef71ca903c832074e05fe3ff365556ebc814a6e3d3cf9",
+   "path": "node_modules/@paperclipai/db/compat-fixtures/postgres-connection-recovery.mjs"
+  },
+  "tests": {
+   "esm: rejects disconnected transaction work and recovers the pool": "passed",
+   "esm: rejects disconnected transaction-closed work and recovers the pool": "passed",
+   "esm: rejects disconnected savepoint work and recovers the pool": "passed",
+   "esm: rejects disconnected reserve work and recovers the pool": "passed",
+   "esm: rejects disconnected transaction-queue work and recovers the pool": "passed",
+   "esm: rejects disconnected reserve-queue work and recovers the pool": "passed",
+   "cjs: rejects disconnected transaction work and recovers the pool": "passed",
+   "cjs: rejects disconnected transaction-closed work and recovers the pool": "passed",
+   "cjs: rejects disconnected savepoint work and recovers the pool": "passed",
+   "cjs: rejects disconnected reserve work and recovers the pool": "passed",
+   "cjs: rejects disconnected transaction-queue work and recovers the pool": "passed",
+   "cjs: rejects disconnected reserve-queue work and recovers the pool": "passed"
+  }
+ },
+ "builtUnchanged": {
+  "variant": "built-unchanged",
+  "paperclip": "2026.1012.0",
+  "install": "paperclipai@2026.1012.0-compat.0 from the local registry",
+  "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
+  "fork": null,
+  "node": "v24.22.0",
+  "manifest": {
+   "name": "paperclip-packaged-check",
+   "private": true,
+   "dependencies": {
+    "paperclipai": "2026.1012.0-compat.0"
+   }
+  },
+  "steps": {
+   "install": {
+    "status": "passed",
+    "exit": 0
+   },
+   "entries": {
+    "status": "passed"
+   },
+   "fixture": {
+    "status": "passed",
+    "http": 200
+   }
+  },
+  "entries": [
+   {
+    "name": "paperclipai",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/paperclipai",
+    "declares": "^3.4.9",
+    "driver": {
+     "id": "postgres@3.4.9",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   },
+   {
+    "name": "@paperclipai/server",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/@paperclipai/server",
+    "declares": null,
+    "driver": {
+     "id": "postgres@3.4.9",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   },
+   {
+    "name": "@paperclipai/db",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/@paperclipai/db",
+    "declares": "^3.4.9",
+    "driver": {
+     "id": "postgres@3.4.9",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   }
+  ],
+  "fixture": {
+   "url": "https://raw.githubusercontent.com/paperclipai/paperclip/bba6a45f0d364cfd962ac59b3bdf2426a8222adb/packages/db/src/__fixtures__/postgres-connection-recovery.mjs",
+   "sha256": "2a85d9fc5840866fbf1ef71ca903c832074e05fe3ff365556ebc814a6e3d3cf9",
+   "path": "node_modules/@paperclipai/db/compat-fixtures/postgres-connection-recovery.mjs"
+  },
+  "tests": {
+   "esm: rejects disconnected transaction work and recovers the pool": "failed",
+   "esm: rejects disconnected transaction-closed work and recovers the pool": "failed",
+   "esm: rejects disconnected savepoint work and recovers the pool": "failed",
+   "esm: rejects disconnected reserve work and recovers the pool": "failed",
+   "esm: rejects disconnected transaction-queue work and recovers the pool": "failed",
+   "esm: rejects disconnected reserve-queue work and recovers the pool": "failed",
+   "cjs: rejects disconnected transaction work and recovers the pool": "failed",
+   "cjs: rejects disconnected transaction-closed work and recovers the pool": "failed",
+   "cjs: rejects disconnected savepoint work and recovers the pool": "failed",
+   "cjs: rejects disconnected reserve work and recovers the pool": "failed",
+   "cjs: rejects disconnected transaction-queue work and recovers the pool": "failed",
+   "cjs: rejects disconnected reserve-queue work and recovers the pool": "failed"
+  }
+ },
+ "builtFork": {
+  "variant": "built-fork",
+  "paperclip": "2026.1012.0",
+  "install": "paperclipai@2026.1012.0-compat.0 from the local registry",
+  "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
+  "fork": "4.6.0",
+  "node": "v24.21.0",
+  "manifest": {
+   "name": "paperclip-packaged-check",
+   "private": true,
+   "dependencies": {
+    "paperclipai": "2026.1012.0-compat.0"
+   }
+  },
+  "steps": {
+   "install": {
+    "status": "passed",
+    "exit": 0
+   },
+   "entries": {
+    "status": "passed"
+   },
+   "fixture": {
+    "status": "passed",
+    "http": 200
+   }
+  },
+  "entries": [
+   {
+    "name": "paperclipai",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/paperclipai",
+    "declares": "npm:@steadybrew/postgresjs@4.6.0",
+    "driver": {
+     "id": "@steadybrew/postgresjs@4.6.0",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   },
+   {
+    "name": "@paperclipai/server",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/@paperclipai/server",
+    "declares": null,
+    "driver": {
+     "id": "@steadybrew/postgresjs@4.6.0",
+     "path": "node_modules/postgres",
+     "patched": []
+    }
+   },
+   {
+    "name": "@paperclipai/db",
+    "version": "2026.1012.0-compat.0",
+    "location": "node_modules/@paperclipai/db",
+    "declares": "npm:@steadybrew/postgresjs@4.6.0",
     "driver": {
      "id": "@steadybrew/postgresjs@4.6.0",
      "path": "node_modules/postgres",
