@@ -38,7 +38,7 @@ jobs:
         run: node runner/plan.mjs >> "$GITHUB_OUTPUT"
 
   run:
-    name: ${{ matrix.target }} (${{ matrix.variant }})
+    name: ${{ matrix.target }} (${{ matrix.variant }}${{ matrix.shard != '' && format(' {0}', matrix.shard) || '' }})
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -64,11 +64,12 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           VERSION: ${{ needs.plan.outputs.version }}
           MIGRATE: ${{ needs.plan.outputs.migrate }}
-        run: node runner/run.mjs "$TARGET" "$VARIANT" "$VERSION" "$MIGRATE" out
+          SHARD: ${{ matrix.shard }}
+        run: node runner/run.mjs "$TARGET" "$VARIANT" "$VERSION" "$MIGRATE" out $SHARD
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: result-${{ matrix.target }}-${{ matrix.variant }}
+          name: result-${{ matrix.target }}-${{ matrix.variant }}${{ matrix.shard != '' && format('-{0}', matrix.shard) || '' }}
           path: out
 
   compare:

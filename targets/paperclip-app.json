@@ -1,0 +1,52 @@
+{
+  "repo": "paperclipai/paperclip",
+  "tag": "v2026.1012.0",
+  "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
+  "node": "24",
+  "unchanged": "postgres@3.4.9 (patched)",
+  "variants": [
+    "unchanged",
+    "fork"
+  ],
+  "resolve": [
+    "packages/db"
+  ],
+  "versions": [
+    "embedded-postgres",
+    "drizzle-orm"
+  ],
+  "prepare": "node \"$COMPAT_ROOT/scripts/paperclip-json-reports.mjs\"",
+  "install": "pnpm install --no-frozen-lockfile",
+  "shards": [
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 0 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 1 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 2 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 3 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 4 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 5 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 6 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 7 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 8 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 9 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 10 --shard-count 12",
+    "pnpm test:run:general -- --group general-server-without-chat --shard-index 11 --shard-count 12",
+    "pnpm test:run:general -- --group general-chat --shard-index 0 --shard-count 3",
+    "pnpm test:run:general -- --group general-chat --shard-index 1 --shard-count 3",
+    "pnpm test:run:general -- --group general-chat --shard-index 2 --shard-count 3",
+    "pnpm test:run:general -- --group general-workspaces-a --shard-index 0 --shard-count 2",
+    "pnpm test:run:general -- --group general-workspaces-a --shard-index 1 --shard-count 2",
+    "pnpm test:run:general -- --group general-workspaces-b",
+    "pnpm test:run:general -- --group general-workspaces-c",
+    "pnpm test:run:serialized -- --shard-index 0 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 1 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 2 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 3 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 4 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 5 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 6 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 7 --shard-count 9",
+    "pnpm test:run:serialized -- --shard-index 8 --shard-count 9",
+    "pnpm typecheck && pnpm build"
+  ],
+  "timeoutMinutes": 45
+}

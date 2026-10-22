@@ -43,6 +43,12 @@ Add `targets/<name>.json`:
 | `unchanged` | Also run the checkout as published; `postgres` must resolve to this, such as `postgres@3.4.9 (patched)` |
 | `tests` | Number of tests that must run rather than skip, checked as the `count` step |
 | `versions` | Other packages whose resolved versions each run records from the `resolve` directories |
+| `variants` | Runs to make, from `unchanged`, `baseline` and `fork` (default: `baseline` and `fork`, plus `unchanged` when set) |
+| `shards` | Test commands run as separate jobs instead of `test`, such as the shards of the target's own CI |
+| `prepare` | Command run on the checkout before the switch, for harness changes only; its diff is kept as `prepare.diff` |
+| `table` | Show every test of every run in the results |
+
+[`paperclip-app`](targets/paperclip-app.json) runs the general and serialized test lanes of Paperclip's PR workflow, sharded as that workflow shards them, plus typecheck and build. It compares Paperclip's patched 3.4.9 with the fork. Its `prepare` step only adds a JSON reporter to Paperclip's test wrapper.
 | `timeoutMinutes` | Limit for each command |
 
 ## Paperclip installed from npm

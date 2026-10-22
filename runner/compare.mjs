@@ -9,32 +9,54 @@ if (!version || !migrate || !input) {
 
 const targetsDir = new URL('../targets/', import.meta.url)
 const resultsDir = new URL('../results/', import.meta.url)
-const names = [...new Set(readdirSync(input).map(d => d.match(/^result-(.+)-(?:unchanged|baseline|fork)$/)?.[1]).filter(Boolean))].sort()
-const load = (name, variant) => {
-  const file = join(input, 'result-' + name + '-' + variant, 'result.json')
-  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
+const artifacts = readdirSync(input).map(d => d.match(/^result-(.+)-(unchanged|baseline|fork)(?:-(\d+))?$/)).filter(Boolean)
+const names = [...new Set(artifacts.map(m => m[1]))].sort()
+const load = (name, variant, shards) => {
+  const runs = artifacts
+    .filter(m => m[1] === name && m[2] === variant && existsSync(join(input, m[0], 'result.json')))
+    .map(m => JSON.parse(readFileSync(join(input, m[0], 'result.json'), 'utf8')))
+  if (runs.length !== (shards || 1))
+    return null
+  if (!shards)
+    return runs[0]
+  const counts = {}
+  for (const run of runs)
+    for (const [status, n] of Object.entries(run.counts || {}))
+      counts[status] = (counts[status] || 0) + n
+  return {
+    ...runs[0],
+    shard: null,
+    command: null,
+    shards: runs.map(r => ({ shard: r.shard, command: r.command, steps: r.steps })),
+    steps: Object.fromEntries(runs.flatMap(r => Object.entries(r.steps).map(([step, s]) => [step + ' #' + r.shard, s]))),
+    counts,
+    tests: Object.assign({}, ...runs.map(r => r.tests))
+  }
 }
 const passed = s => s === 'passed'
 const failed = s => s === 'failed' || s === undefined
 const status = (run, id) => id.startsWith('step: ') ? run?.steps[id.slice(6)]?.status : run?.tests[id]
-const setupFailures = (run, label) => Object.entries(run?.steps || {}).filter(([step, s]) => step !== 'test' && !passed(s.status)).map(([step]) => step + ' with ' + label)
+const setupFailures = (run, label) => Object.entries(run?.steps || {}).filter(([step, s]) => !/^test( #\d+)?$/.test(step) && !passed(s.status)).map(([step]) => step + ' with ' + label)
 
 const summary = names.map(name => {
   const target = JSON.parse(readFileSync(new URL(name + '.json', targetsDir), 'utf8'))
-  const unchanged = target.unchanged ? load(name, 'unchanged') : null
-  const baseline = load(name, 'baseline')
-  const fork = load(name, 'fork')
+  const variants = target.variants || [target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean)
+  const shards = target.shards?.length
+  const unchanged = variants.includes('unchanged') ? load(name, 'unchanged', shards) : null
+  const baseline = variants.includes('baseline') ? load(name, 'baseline', shards) : null
+  const fork = load(name, 'fork', shards)
   const regressions = []
   const fixed = []
   const bothFailing = []
   let bothPassing = 0
-  const missing = [target.unchanged && !unchanged && 'unchanged', !baseline && 'baseline', !fork && 'fork'].filter(Boolean)
+  const missing = variants.filter(v => !{ unchanged, baseline, fork }[v])
   if (missing.length)
-    regressions.push('(no result from the ' + missing.join(' and ') + ' run)')
+    regressions.push('(no complete result from the ' + missing.join(' and ') + ' run)')
   const runs = [unchanged, baseline, fork]
+  const reference = variants.includes('baseline') ? baseline : unchanged
   const ids = missing.length ? [] : [...new Set(runs.flatMap(r => [...Object.keys(r?.steps || {}).map(step => 'step: ' + step), ...Object.keys(r?.tests || {})]))]
   for (const id of ids) {
-    const [before, base, after] = runs.map(r => status(r, id))
+    const [before, base, after] = [unchanged, reference, fork].map(r => status(r, id))
     if (passed(base) && passed(after))
       id.startsWith('step: ') || bothPassing++
     else if ((passed(base) || passed(before)) && failed(after))
@@ -82,8 +104,8 @@ const md = [
   '| Library | Version | Passing on both | Regressions | Fixed by the fork | Failing on both |',
   '| --- | --- | --- | --- | --- | --- |',
   ...summary.map(s => '| ' + link(s) + ' | ' + s.target.tag + ' | ' + s.bothPassing + ' | ' + s.regressions.length + ' | ' + s.fixed.length + ' | ' + s.bothFailing.length + ' |'),
-  ...summary.flatMap(s => s.target.unchanged || s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
-    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.unchanged ? threeWay(s) : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
+  ...summary.flatMap(s => s.target.table || s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
+    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.table ? threeWay(s) : []), ...(s.target.variants && !s.target.variants.includes('baseline') ? ['', 'This target runs no 3.4.9 build; its columns compare the unchanged checkout with the fork.'] : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
     : [])
 ].join('\n') + '\n'
 

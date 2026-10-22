@@ -1,11 +1,12 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { appendFileSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const [name, variant, version, migrate, outArg] = process.argv.slice(2)
+const [name, variant, version, migrate, outArg, shardArg] = process.argv.slice(2)
 if (!name || !['unchanged', 'baseline', 'fork'].includes(variant) || !version || !migrate || !outArg) {
-  console.error('usage: node runner/run.mjs <target> unchanged|baseline|fork <fork version> <migrate version> <out dir>')
+  console.error('usage: node runner/run.mjs <target> unchanged|baseline|fork <fork version> <migrate version> <out dir> [shard]')
   process.exit(2)
 }
 
@@ -14,13 +15,18 @@ if (variant === 'unchanged' && !target.unchanged) {
   console.error(name + ' has no unchanged run')
   process.exit(2)
 }
+const shard = target.shards ? Number(shardArg) : null
+if (target.shards && !(shard >= 0 && shard < target.shards.length)) {
+  console.error(name + ' needs a shard from 0 to ' + (target.shards.length - 1))
+  process.exit(2)
+}
 const out = resolve(outArg)
 mkdirSync(out, { recursive: true })
 const report = join(out, 'vitest.json')
 const scratch = mkdtempSync(join(process.env.RUNNER_TEMP || tmpdir(), 'compat-'))
 const repo = join(scratch, 'repo')
 const cwd = join(repo, target.workdir || '.')
-const env = { ...process.env, CI: 'true', ...target.env }
+const env = { ...process.env, CI: 'true', COMPAT_ROOT: fileURLToPath(new URL('..', import.meta.url)), COMPAT_REPORTS: out, ...target.env }
 const steps = {}
 
 const git = (dir, ...args) => execFileSync('git', ['-c', 'core.symlinks=false', '-c', 'core.hooksPath=/dev/null', ...args], {
@@ -63,6 +69,12 @@ if (target.fixture) {
   git(repo, 'fetch', '-q', '--depth', '1', 'https://github.com/' + target.repo + '.git', target.ref)
   git(repo, 'checkout', '-q', 'FETCH_HEAD')
 }
+if (target.prepare) {
+  run('prepare', target.prepare, repo)
+  git(repo, 'add', '-A')
+  git(repo, '-c', 'user.name=compat', '-c', 'user.email=compat@localhost', 'commit', '-q', '--allow-empty', '-m', 'prepare')
+  writeFileSync(join(out, 'prepare.diff'), git(repo, 'show', 'HEAD'))
+}
 
 const alias = 'npm:@steadybrew/postgresjs@^4'
 const spec = variant === 'fork' ? 'npm:@steadybrew/postgresjs@' + version : '3.4.9'
@@ -71,7 +83,7 @@ const resolved = {}
 const versions = {}
 
 const packageManager = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).packageManager || ''
-let ready = !packageManager.startsWith('pnpm@') || run('pnpm', 'npm install -g ' + packageManager.split('+')[0], repo)
+let ready = steps.prepare?.status !== 'failed' && (!packageManager.startsWith('pnpm@') || run('pnpm', 'npm install -g ' + packageManager.split('+')[0], repo))
 if (ready && target.buildBeforeSwitch)
   ready = run('original-install', target.install) && run('build', target.build)
 
@@ -120,7 +132,7 @@ if (ready) {
     }
   }
   target.build && !target.buildBeforeSwitch && run('build', target.build)
-  run('test', target.test.replaceAll('{report}', report))
+  run('test', target.shards ? target.shards[shard] : target.test.replaceAll('{report}', report))
 }
 
 const tests = {}
@@ -130,8 +142,8 @@ const add = (id, status) => {
     key = id + ' #' + n
   tests[key] = status
 }
-if (existsSync(report)) {
-  for (const file of JSON.parse(readFileSync(report, 'utf8')).testResults) {
+for (const json of readdirSync(out).filter(f => /^vitest(-.+)?\.json$/.test(f)).sort()) {
+  for (const file of JSON.parse(readFileSync(join(out, json), 'utf8')).testResults) {
     const path = relative(repo, file.name)
     if (file.status === 'failed' && (file.message || !file.assertionResults.length))
       add(path + ' > (file)', 'failed')
@@ -156,6 +168,8 @@ writeFileSync(join(out, 'result.json'), JSON.stringify({
   tag: target.tag,
   ref: target.ref,
   variant,
+  shard,
+  command: target.shards ? target.shards[shard] : target.test,
   version: want,
   migrate,
   node: process.version,

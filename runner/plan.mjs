@@ -17,7 +17,9 @@ if (unknown.length)
 
 const include = (wanted.length ? wanted : all).flatMap(name => {
   const target = JSON.parse(readFileSync(new URL(name + '.json', dir), 'utf8'))
-  return [target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean).map(variant =>({ target: name, variant, node: target.node, databases: (target.databases || []).join(' '), packages: (target.packages || []).join(' ') }))
+  const variants = target.variants || [target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean)
+  const shards = target.shards ? target.shards.map((_, i) => String(i)) : ['']
+  return variants.flatMap(variant => shards.map(shard => ({ target: name, variant, shard, node: target.node, databases: (target.databases || []).join(' '), packages: (target.packages || []).join(' ') })))
 })
 
 console.log('version=' + version)
