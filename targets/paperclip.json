@@ -1,0 +1,14 @@
+{
+  "repo": "paperclipai/paperclip",
+  "tag": "v2026.1012.0",
+  "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
+  "node": "24",
+  "unchanged": "postgres@3.4.9 (patched)",
+  "workdir": "packages/db",
+  "resolve": ["packages/db"],
+  "versions": ["embedded-postgres", "drizzle-orm"],
+  "install": "pnpm install --no-frozen-lockfile",
+  "test": "pnpm exec vitest run src/postgres-connection-recovery.test.ts --reporter=default --reporter=json --outputFile.json={report}",
+  "tests": 12,
+  "timeoutMinutes": 30
+}

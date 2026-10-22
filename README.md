@@ -1,6 +1,6 @@
 # postgresjs-compat
 
-Runs other libraries' own test suites against [`@steadybrew/postgresjs`](https://github.com/steadybrew/postgresjs), to check that libraries which load `postgres` by name work unchanged after switching with the npm alias.
+Runs other libraries' and applications' own test suites against [`@steadybrew/postgresjs`](https://github.com/steadybrew/postgresjs), to check that code which loads `postgres` by name works unchanged after switching with the npm alias.
 
 ## How a run works
 
@@ -8,11 +8,14 @@ For each library in [`targets/`](targets):
 
 1. Clone it at a pinned commit and run [`@steadybrew/postgresjs-migrate --switch`](https://github.com/steadybrew/postgresjs/tree/main/codemod), which sets `"postgres": "npm:@steadybrew/postgresjs@^4"`.
 2. Run its tests twice on that checkout: once with the alias replaced by `postgres` 3.4.9, once with the fork version under test.
-3. Compare. A **regression** is a test or step that passes with 3.4.9 and fails with the fork. Tests that fail with both are listed but not counted, and so are tests the fork fixes.
+3. If the target ships its own patched `postgres`, such as Paperclip, run its tests a third time on the checkout as published, without the switch.
+4. Compare. A **regression** is a test or step that passes with 3.4.9, or on the unchanged checkout, and fails with the fork. Tests that fail with both 3.4.9 and the fork are listed but not counted, and so are tests the fork fixes. Targets with an unchanged run also get a table of every test in all three runs.
 
-If a setup step fails with 3.4.9, the harness is broken for that library and the run fails.
+Each run is its own job with a fresh checkout and install. A `postgres` that pnpm patched resolves as `postgres@3.4.9 (patched)`, so the 3.4.9 and fork runs also check that no patch is left.
 
-PostgreSQL 17 is installed from apt on the runner, one cluster for both runs.
+If a setup step fails with 3.4.9 or on the unchanged checkout, the harness is broken for that library and the run fails.
+
+PostgreSQL 17 is installed from apt on the runner, one cluster per run, for targets that list `databases`. Paperclip starts its own embedded PostgreSQL.
 
 ## Results
 
@@ -37,4 +40,7 @@ Add `targets/<name>.json`:
 | `install`, `build`, `test` | Commands; `{report}` in `test` is the path for vitest's JSON report |
 | `buildBeforeSwitch` | Install and build with the library's own lockfile before switching, as its published build is made |
 | `resolve` | Directories whose `node_modules/postgres` must be the version under test (default: the root) |
+| `unchanged` | Also run the checkout as published; `postgres` must resolve to this, such as `postgres@3.4.9 (patched)` |
+| `tests` | Number of tests that must run rather than skip, checked as the `count` step |
+| `versions` | Other packages whose resolved versions each run records from the `resolve` directories |
 | `timeoutMinutes` | Limit for each command |

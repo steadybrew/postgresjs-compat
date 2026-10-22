@@ -4,12 +4,16 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
 const [name, variant, version, migrate, outArg] = process.argv.slice(2)
-if (!name || !['baseline', 'fork'].includes(variant) || !version || !migrate || !outArg) {
-  console.error('usage: node runner/run.mjs <target> baseline|fork <fork version> <migrate version> <out dir>')
+if (!name || !['unchanged', 'baseline', 'fork'].includes(variant) || !version || !migrate || !outArg) {
+  console.error('usage: node runner/run.mjs <target> unchanged|baseline|fork <fork version> <migrate version> <out dir>')
   process.exit(2)
 }
 
 const target = JSON.parse(readFileSync(new URL('../targets/' + name + '.json', import.meta.url), 'utf8'))
+if (variant === 'unchanged' && !target.unchanged) {
+  console.error(name + ' has no unchanged run')
+  process.exit(2)
+}
 const out = resolve(outArg)
 mkdirSync(out, { recursive: true })
 const report = join(out, 'vitest.json')
@@ -44,10 +48,10 @@ const fail = (step, reason) => {
   console.log(step, 'failed:', reason)
 }
 
-const installed = dir => {
-  const file = realpathSync(join(repo, dir, 'node_modules', 'postgres', 'package.json'))
+const installed = (dir, pkg) => {
+  const file = realpathSync(join(repo, dir, 'node_modules', pkg, 'package.json'))
   const { name, version } = JSON.parse(readFileSync(file, 'utf8'))
-  return name + '@' + version
+  return name + '@' + version + (file.includes('_patch_hash=') ? ' (patched)' : '')
 }
 
 git(scratch, 'init', '-q', 'repo')
@@ -62,15 +66,16 @@ if (target.fixture) {
 
 const alias = 'npm:@steadybrew/postgresjs@^4'
 const spec = variant === 'fork' ? 'npm:@steadybrew/postgresjs@' + version : '3.4.9'
-const want = variant === 'fork' ? '@steadybrew/postgresjs@' + version : 'postgres@3.4.9'
+const want = { unchanged: target.unchanged, baseline: 'postgres@3.4.9', fork: '@steadybrew/postgresjs@' + version }[variant]
 const resolved = {}
+const versions = {}
 
 const packageManager = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).packageManager || ''
 let ready = !packageManager.startsWith('pnpm@') || run('pnpm', 'npm install -g ' + packageManager.split('+')[0], repo)
 if (ready && target.buildBeforeSwitch)
   ready = run('original-install', target.install) && run('build', target.build)
 
-if (ready) {
+if (ready && variant !== 'unchanged') {
   run('switch', 'npx -y @steadybrew/postgresjs-migrate@' + migrate + ' . --switch', repo)
   writeFileSync(join(out, 'switch.diff'), git(repo, 'diff'))
   const changed = git(repo, 'diff', '--name-only').split('\n').filter(Boolean)
@@ -100,12 +105,19 @@ if (ready) {
   steps.resolve = { status: 'passed' }
   for (const dir of target.resolve || ['.']) {
     try {
-      resolved[dir] = installed(dir)
+      resolved[dir] = installed(dir, 'postgres')
     } catch (error) {
       resolved[dir] = error.code || error.message
     }
     if (resolved[dir] !== want)
       fail('resolve', dir + ' resolves postgres to ' + resolved[dir] + ', not ' + want)
+    for (const pkg of target.versions || []) {
+      try {
+        versions[dir] = { ...versions[dir], [pkg]: installed(dir, pkg) }
+      } catch (error) {
+        versions[dir] = { ...versions[dir], [pkg]: error.code || error.message }
+      }
+    }
   }
   target.build && !target.buildBeforeSwitch && run('build', target.build)
   run('test', target.test.replaceAll('{report}', report))
@@ -128,6 +140,15 @@ if (existsSync(report)) {
   }
 }
 
+const counts = {}
+for (const [id, status] of Object.entries(tests))
+  id.endsWith(' > (file)') || (counts[status] = (counts[status] || 0) + 1)
+if (target.tests && steps.test) {
+  const ran = (counts.passed || 0) + (counts.failed || 0)
+  steps.count = { status: 'passed' }
+  ran === target.tests || fail('count', ran + ' of ' + target.tests + ' tests ran')
+}
+
 writeFileSync(join(out, 'result.json'), JSON.stringify({
   target: name,
   repo: target.repo || null,
@@ -135,10 +156,13 @@ writeFileSync(join(out, 'result.json'), JSON.stringify({
   tag: target.tag,
   ref: target.ref,
   variant,
-  version: variant === 'fork' ? version : '3.4.9',
+  version: want,
   migrate,
+  node: process.version,
   resolved,
+  versions,
   steps,
+  counts,
   tests
 }, null, 1) + '\n')
 console.log(Object.keys(tests).length, 'tests recorded')

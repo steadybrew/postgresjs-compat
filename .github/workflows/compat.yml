@@ -54,7 +54,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: ${{ matrix.node }}
-      - env:
+      - if: matrix.databases != ''
+        env:
           DATABASES: ${{ matrix.databases }}
           PG_PACKAGES: ${{ matrix.packages }}
         run: bash scripts/setup-postgres.sh $DATABASES
