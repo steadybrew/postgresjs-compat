@@ -78,7 +78,7 @@ if (ready && target.buildBeforeSwitch)
 if (ready && variant !== 'unchanged') {
   run('switch', 'npx -y @steadybrew/postgresjs-migrate@' + migrate + ' . --switch', repo)
   writeFileSync(join(out, 'switch.diff'), git(repo, 'diff'))
-  const changed = git(repo, 'diff', '--name-only').split('\n').filter(Boolean)
+  const changed = git(repo, 'diff', '--name-only', '--diff-filter=d').split('\n').filter(Boolean)
   let replaced = 0
   for (const file of changed) {
     const path = join(repo, file)
