@@ -142,9 +142,10 @@ const stable = id => id
   .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, '<time>')
   .replace(/\bPID \d+/g, 'PID <n>')
 const add = (id, status) => {
-  let key = stable(id)
+  const base = stable(id)
+  let key = base
   for (let n = 2; key in tests; n++)
-    key = id + ' #' + n
+    key = base + ' #' + n
   tests[key] = status
 }
 for (const json of readdirSync(out).filter(f => /^vitest(-.+)?\.json$/.test(f)).sort()) {
