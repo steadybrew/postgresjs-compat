@@ -6,13 +6,15 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 
 const [variant, fork, outArg] = process.argv.slice(2)
-if (!['published', 'override'].includes(variant) || !fork || !outArg) {
-  console.error('usage: node runner/paperclip-packaged.mjs published|override <fork version> <out dir>')
+if (!['published', 'override', 'built-unchanged', 'built-fork'].includes(variant) || !fork || !outArg) {
+  console.error('usage: node runner/paperclip-packaged.mjs published|override|built-unchanged|built-fork <fork version> <out dir>')
   process.exit(2)
 }
 
 const target = JSON.parse(readFileSync(new URL('../targets/paperclip.json', import.meta.url), 'utf8'))
 const paperclip = target.tag.replace(/^v/, '')
+const built = variant.startsWith('built-')
+const install = built ? paperclip + '-compat.0' : paperclip
 const out = resolve(outArg)
 mkdirSync(out, { recursive: true })
 const app = mkdtempSync(join(process.env.RUNNER_TEMP || tmpdir(), 'paperclip-packaged-'))
@@ -20,10 +22,12 @@ const database = process.env.TEST_DATABASE_URL
 const steps = {}
 const tests = {}
 
-const manifest = { name: 'paperclip-packaged-check', private: true, dependencies: { paperclipai: paperclip } }
+const manifest = { name: 'paperclip-packaged-check', private: true, dependencies: { paperclipai: install } }
 if (variant === 'override')
   manifest.overrides = { postgres: 'npm:@steadybrew/postgresjs@' + fork }
 writeFileSync(join(app, 'package.json'), JSON.stringify(manifest, null, 1) + '\n')
+if (built)
+  writeFileSync(join(app, '.npmrc'), 'registry=http://localhost:4873/\n')
 
 const log = join(out, 'install.log')
 const fd = openSync(log, 'w')
@@ -99,8 +103,9 @@ if (steps.fixture?.status === 'passed') {
 writeFileSync(join(out, 'result.json'), JSON.stringify({
   variant,
   paperclip,
+  install: 'paperclipai@' + install + (built ? ' from the local registry' : ' from npm'),
   ref: target.ref,
-  fork: variant === 'override' ? fork : null,
+  fork: ['override', 'built-fork'].includes(variant) ? fork : null,
   node: process.version,
   manifest,
   steps,
