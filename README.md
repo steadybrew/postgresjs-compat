@@ -44,3 +44,7 @@ Add `targets/<name>.json`:
 | `tests` | Number of tests that must run rather than skip, checked as the `count` step |
 | `versions` | Other packages whose resolved versions each run records from the `resolve` directories |
 | `timeoutMinutes` | Limit for each command |
+
+## Paperclip installed from npm
+
+The **paperclip-packaged** workflow installs the published `paperclipai` release pinned in [`targets/paperclip.json`](targets/paperclip.json) with npm into an empty directory, the way an npm user gets it. It records which `postgres` each published Paperclip package resolves and whether it carries Paperclip's patch, then runs Paperclip's recovery fixture from inside the installed `@paperclipai/db`. A second run adds an npm override to the fork. Results go to `results/paperclip-npm-<version>.md`.

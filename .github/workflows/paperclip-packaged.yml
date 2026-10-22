@@ -1,0 +1,90 @@
+name: paperclip-packaged
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '@steadybrew/postgresjs version for the override run (default: npm latest)'
+        required: false
+
+permissions: {}
+
+concurrency:
+  group: paperclip-packaged
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - id: plan
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "version=$(npm view "@steadybrew/postgresjs@${VERSION:-latest}" version)" >> "$GITHUB_OUTPUT"
+
+  run:
+    name: paperclip from npm (${{ matrix.variant }})
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [published, override]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: bash scripts/setup-postgres.sh paperclip_recovery
+      - env:
+          VARIANT: ${{ matrix.variant }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/paperclip_recovery
+        run: node runner/paperclip-packaged.mjs "$VARIANT" "$VERSION" out
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: packaged-${{ matrix.variant }}
+          path: out
+
+  report:
+    name: Report and commit results
+    needs: [plan, run]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: packaged-*
+          path: ${{ runner.temp }}/results
+      - id: report
+        continue-on-error: true
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+          RESULTS: ${{ runner.temp }}/results
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node runner/paperclip-packaged-report.mjs "$VERSION" "$RESULTS" "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+      - env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add results
+          git diff --cached --quiet && exit 0
+          git commit -m "results: Paperclip installed from npm, override to @steadybrew/postgresjs $VERSION"
+          git push
+      - if: steps.report.outcome == 'failure'
+        run: exit 1
