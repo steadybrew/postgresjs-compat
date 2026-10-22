@@ -136,8 +136,13 @@ if (ready) {
 }
 
 const tests = {}
+const stable = id => id
+  .replace(/^(?:\.\.\/)+(?:private\/)?tmp\/(?:.*\/)?[^/]*-[A-Za-z0-9]{6}\//, '<tmp>/')
+  .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<uuid>')
+  .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, '<time>')
+  .replace(/\bPID \d+/g, 'PID <n>')
 const add = (id, status) => {
-  let key = id
+  let key = stable(id)
   for (let n = 2; key in tests; n++)
     key = id + ' #' + n
   tests[key] = status

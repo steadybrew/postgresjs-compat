@@ -11,7 +11,7 @@ For each library in [`targets/`](targets):
 3. If the target ships its own patched `postgres`, such as Paperclip, run its tests a third time on the checkout as published, without the switch.
 4. Compare. A **regression** is a test or step that passes with 3.4.9, or on the unchanged checkout, and fails with the fork. Tests that fail with both 3.4.9 and the fork are listed but not counted, and so are tests the fork fixes. Targets with an unchanged run also get a table of every test in all three runs.
 
-Each run is its own job with a fresh checkout and install. A `postgres` that pnpm patched resolves as `postgres@3.4.9 (patched)`, so the 3.4.9 and fork runs also check that no patch is left.
+Test names are recorded with UUIDs, timestamps, process IDs and random temporary directories replaced by placeholders, so a test whose name carries such a value matches across runs. Each run is its own job with a fresh checkout and install. A `postgres` that pnpm patched resolves as `postgres@3.4.9 (patched)`, so the 3.4.9 and fork runs also check that no patch is left.
 
 If a setup step fails with 3.4.9 or on the unchanged checkout, the harness is broken for that library and the run fails.
 
