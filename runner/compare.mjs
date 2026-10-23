@@ -66,7 +66,7 @@ const summary = names.map(name => {
     else if (base === 'failed' && after === 'failed')
       bothFailing.push(id)
   }
-  const harness = [...setupFailures(unchanged, target.unchanged + ' on the unchanged checkout'), ...setupFailures(baseline, 'postgres@3.4.9')]
+  const harness = [...setupFailures(unchanged, target.unchanged + ' as published'), ...setupFailures(baseline, 'postgres@3.4.9')]
   return { name, target, unchanged, baseline, fork, bothPassing, regressions, fixed, bothFailing, harness }
 })
 
@@ -81,7 +81,7 @@ const describe = run => {
   return [counts, 'Node ' + run.node, ...versions].join('; ')
 }
 const threeWay = s => {
-  const runs = [['`postgres@3.4.9`', s.baseline], ['`' + s.target.unchanged + '`, unchanged', s.unchanged], ['`@steadybrew/postgresjs@' + version + '`', s.fork]]
+  const runs = [['3.4.9: `postgres@3.4.9`', s.baseline], ['As published: `' + s.target.unchanged + '`', s.unchanged], ['Fork: `@steadybrew/postgresjs@' + version + '`', s.fork]]
   const ids = [...new Set(runs.flatMap(([, r]) => Object.keys(r?.tests || {})))].sort()
   return [
     '',
@@ -94,18 +94,25 @@ const threeWay = s => {
     ...runs.map(([label, r]) => '- ' + label + ': ' + describe(r))
   ]
 }
+const uses = variant => summary.filter(s => (s.target.variants || [s.target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean)).includes(variant)).map(s => s.name).join(', ') || 'none'
 const md = [
   '# @steadybrew/postgresjs ' + version,
   '',
   'Run on ' + date + ' with `@steadybrew/postgresjs-migrate` ' + migrate + ' and PostgreSQL 17, except where a library starts its own' + (runUrl ? ' ([workflow run](' + runUrl + '))' : '') + '.',
   '',
-  'Each library\'s own tests run twice on the same checkout after `--switch`: once with `postgres` 3.4.9 and once with `@steadybrew/postgresjs` ' + version + '. A library that ships its own patched `postgres` also runs once on its unchanged checkout. A regression is a test or step that passes with 3.4.9, or on the unchanged checkout, and fails with the fork.',
+  'Each library\'s own tests run on its pinned checkout, in separate jobs with fresh installs:',
+  '',
+  '- **3.4.9**: `@steadybrew/postgresjs-migrate --switch`, then the dependency set to `postgres` 3.4.9. The switch also removes any `postgres` patch the fork already contains, so this is plain 3.4.9. Libraries: ' + uses('baseline') + '.',
+  '- **Fork**: the same switch, with `@steadybrew/postgresjs` ' + version + '. Libraries: ' + uses('fork') + '.',
+  '- **As published**: the checkout without the switch, for libraries that ship their own patched `postgres`. Libraries: ' + uses('unchanged') + '.',
+  '',
+  'A regression is a test or step that passes with 3.4.9 or as published, and fails with the fork. "Passing on both", "Fixed by the fork" and "Failing on both" compare the fork with 3.4.9, or with the published checkout for a library that has no 3.4.9 run.',
   '',
   '| Library | Version | Passing on both | Regressions | Fixed by the fork | Failing on both |',
   '| --- | --- | --- | --- | --- | --- |',
   ...summary.map(s => '| ' + link(s) + ' | ' + s.target.tag + ' | ' + s.bothPassing + ' | ' + s.regressions.length + ' | ' + s.fixed.length + ' | ' + s.bothFailing.length + ' |'),
   ...summary.flatMap(s => s.target.table || s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
-    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.table ? threeWay(s) : []), ...(s.target.variants && !s.target.variants.includes('baseline') ? ['', 'This target runs no 3.4.9 build; its columns compare the unchanged checkout with the fork.'] : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
+    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.table ? threeWay(s) : []), ...(s.target.variants && !s.target.variants.includes('baseline') ? ['', 'This library runs no 3.4.9 job. Its columns compare the fork with the checkout as published, which uses `' + s.target.unchanged + '`.'] : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
     : [])
 ].join('\n') + '\n'
 
