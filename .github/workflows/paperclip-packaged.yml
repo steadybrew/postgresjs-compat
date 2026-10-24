@@ -124,7 +124,7 @@ jobs:
   report:
     name: Report and commit results
     needs: [plan, run, build]
-    if: always() && needs.plan.result == 'success'
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
