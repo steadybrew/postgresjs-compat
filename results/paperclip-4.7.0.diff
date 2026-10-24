@@ -1,0 +1,263 @@
+diff --git a/doc/DATABASE.md b/doc/DATABASE.md
+index 2c87b1a3c70b85cfd09617dffcaca78d3a6b0597..b4c3541b50a5d081ee030ae29fa072fffeacc116 100644
+--- a/doc/DATABASE.md
++++ b/doc/DATABASE.md
+@@ -163,13 +163,23 @@ replay that transaction. New requests can use a fresh connection from the pool.
+ Queries from the failed transaction must keep failing, even after the pool
+ reconnects.
+ 
+-Source builds carry `patches/postgres@3.4.9.patch` for this behavior. It rejects
+-queued and later queries from a disconnected transaction or reserved connection,
+-and prevents a released, closed connection from returning to the open pool.
+-The patch covers both ESM and CommonJS. The regression suite terminates real
+-PostgreSQL backends and checks rejection, pool recovery, and transaction isolation.
+-Remove the patch when an upstream release passes these tests. Installs of the
+-unmodified `postgres` package outside this workspace do not include the patch.
++The `postgres` dependency is `@steadybrew/postgresjs`, a maintained fork of
++postgres.js installed under the `postgres` name, pinned to an exact version in
++`packages/db/package.json`. It rejects queued and later queries from a
++disconnected transaction or reserved connection, and prevents a released, closed
++connection from returning to the open pool, in both ESM and CommonJS. The
++regression suite terminates real PostgreSQL backends and checks rejection, pool
++recovery, and transaction isolation. Because the dependency itself provides this
++behavior, npm installs of the published packages get it too.
++
++A query on a reserved connection after `release()` rejects with
++`CONNECTION_RELEASED`, also when the connection had already closed, and a query
++on a transaction handle after its transaction ends rejects with
++`TRANSACTION_ENDED`. `CONNECTION_ENDED` still means only that `sql.end()` was
++called. To return to upstream, set the dependency back to `postgres@3.4.9`,
++restore `patches/postgres@3.4.9.patch` with its `patchedDependencies` entries in
++`package.json` and `pnpm-workspace.yaml`, and set the recovery fixture's
++released-connection check back to `CONNECTION_CLOSED`.
+ 
+ Trusted-header actor synchronization retries transient connection failures,
+ including `CONNECT_TIMEOUT`, at most twice. This retry applies only to the
+diff --git a/package.json b/package.json
+index a54a7f4456bcd4b4d399c98ef263b6ecca4aef23..6256da6dc78ed2ed83591ab19e127c315b7e75c7 100644
+--- a/package.json
++++ b/package.json
+@@ -117,8 +117,7 @@
+       "@chat-adapter/slack@4.39.0": "patches/@chat-adapter__slack@4.39.0.patch",
+       "@chat-adapter/discord@4.39.0": "patches/@chat-adapter__discord@4.39.0.patch",
+       "@chat-adapter/github@4.39.0": "patches/@chat-adapter__github@4.39.0.patch",
+-      "@discordjs/ws@1.2.3": "patches/@discordjs__ws@1.2.3.patch",
+-      "postgres@3.4.9": "patches/postgres@3.4.9.patch"
++      "@discordjs/ws@1.2.3": "patches/@discordjs__ws@1.2.3.patch"
+     },
+     "overrides": {
+       "@agentclientprotocol/codex-acp@1.6.2>@openai/codex": "0.160.0",
+diff --git a/packages/db/package.json b/packages/db/package.json
+index 573c1afac70a860ad60a8f5d620fab85576236bd..7770cb323f9bfb8596ca9ae27c8de611ca97dd15 100644
+--- a/packages/db/package.json
++++ b/packages/db/package.json
+@@ -51,7 +51,7 @@
+     "@paperclipai/shared": "workspace:*",
+     "drizzle-orm": "^0.45.2",
+     "embedded-postgres": "^18.1.0-beta.16",
+-    "postgres": "^3.4.9"
++    "postgres": "npm:@steadybrew/postgresjs@4.7.0"
+   },
+   "devDependencies": {
+     "@types/node": "^24.0.0",
+diff --git a/packages/db/src/__fixtures__/postgres-connection-recovery.mjs b/packages/db/src/__fixtures__/postgres-connection-recovery.mjs
+index 64ee9db814dd915f9f913c22631695cdd8146a9a..0e5c26e683de6b3d7f91ff98db2f660b0f0eac27 100644
+--- a/packages/db/src/__fixtures__/postgres-connection-recovery.mjs
++++ b/packages/db/src/__fixtures__/postgres-connection-recovery.mjs
+@@ -80,7 +80,7 @@ try {
+       const [freshRow] = await fresh.unsafe("select pg_backend_pid() as pid");
+       assert.notEqual(freshRow.pid, row.pid);
+       reserved.release();
+-      assert.equal((await capture(reserved.unsafe("select 1"))).code, "CONNECTION_CLOSED");
++      assert.equal((await capture(reserved.unsafe("select 1"))).code, "CONNECTION_RELEASED");
+       assert.equal((await fresh.unsafe("select 42 as value"))[0].value, 42);
+     } finally {
+       fresh.release();
+diff --git a/patches/postgres@3.4.9.patch b/patches/postgres@3.4.9.patch
+deleted file mode 100644
+index ab27a64ba333d579c69e2d5a7ad3e348e27fac89..0000000000000000000000000000000000000000
+--- a/patches/postgres@3.4.9.patch
++++ /dev/null
+@@ -1,170 +0,0 @@
+-diff --git a/cjs/src/connection.js b/cjs/src/connection.js
+-index 07f6716702ac888215c86ad6e0071aaf55ae519c..dc24963ce2dd0a219f366f80ba9847548ba23a52 100644
+---- a/cjs/src/connection.js
+-+++ b/cjs/src/connection.js
+-@@ -438,6 +438,7 @@ function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose
+-     remaining = 0
+-     incomings = null
+-     clearImmediate(nextWriteTimer)
+-+    chunk = nextWriteTimer = null
+-     socket.removeListener('data', data)
+-     socket.removeListener('connect', connected)
+-     idleTimer.cancel()
+-@@ -451,6 +452,9 @@ function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose
+-       return reconnect()
+- 
+-     !hadError && (query || sent.length) && error(Errors.connection('CONNECTION_CLOSED', options, socket))
+-+    query = results = errorResponse = null
+-+    result = new Result()
+-+    rows = 0
+-     closedTime = performance.now()
+-     hadError && options.shared.retries++
+-     delay = (typeof backoff === 'function' ? backoff(options.shared.retries) : backoff) * 1000
+-diff --git a/cjs/src/index.js b/cjs/src/index.js
+-index f09c61c7e998f411560b95c9a8e1ed6a97972c11..04dded5c7e2cdc34ac01b29a87cc93248ec8c9c6 100644
+---- a/cjs/src/index.js
+-+++ b/cjs/src/index.js
+-@@ -216,8 +216,19 @@ function Postgres(a, b) {
+-       : move(c, reserved)
+-     c.reserved.release = true
+- 
+-+    let closedError
+-+    c.onclose = error => {
+-+      closedError = error
+-+      while (queue.length)
+-+        queue.shift().reject(error)
+-+    }
+-+
+-     const sql = Sql(handler)
+-     sql.release = () => {
+-+      if (closedError)
+-+        return
+-+      closedError = Errors.connection('CONNECTION_RELEASED', options)
+-+      c.onclose = null
+-       c.reserved = null
+-       onopen(c)
+-     }
+-@@ -225,6 +236,8 @@ function Postgres(a, b) {
+-     return sql
+- 
+-     function handler(q) {
+-+      if (closedError)
+-+        return q.reject(closedError)
+-       c.queue === full
+-         ? queue.push(q)
+-         : c.execute(q) || move(c, full)
+-@@ -236,13 +249,19 @@ function Postgres(a, b) {
+-     const queries = Queue()
+-     let savepoints = 0
+-       , connection
+-+      , closedError
+-       , prepare = null
+- 
+-     try {
+-       await sql.unsafe('begin ' + options.replace(/[^a-z ]/ig, ''), [], { onexecute }).execute()
+-       return await Promise.race([
+-         scope(connection, fn),
+--        new Promise((_, reject) => connection.onclose = reject)
+-+        new Promise((_, reject) => connection.onclose = error => {
+-+          closedError = error
+-+          while (queries.length)
+-+            queries.shift().reject(error)
+-+          reject(error)
+-+        })
+-       ])
+-     } catch (error) {
+-       throw error
+-@@ -290,6 +309,8 @@ function Postgres(a, b) {
+- 
+-       function handler(q) {
+-         q.catch(e => uncaughtError || (uncaughtError = e))
+-+        if (closedError)
+-+          return q.reject(closedError)
+-         c.queue === full
+-           ? queries.push(q)
+-           : c.execute(q) || move(c, full)
+-diff --git a/src/connection.js b/src/connection.js
+-index 1b1cccde43b4570d5d071d6ffaab2669b3c2065a..c95c326a2747c680c2c22b04b1c5f2e27a4e8c90 100644
+---- a/src/connection.js
+-+++ b/src/connection.js
+-@@ -438,6 +438,7 @@ function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose
+-     remaining = 0
+-     incomings = null
+-     clearImmediate(nextWriteTimer)
+-+    chunk = nextWriteTimer = null
+-     socket.removeListener('data', data)
+-     socket.removeListener('connect', connected)
+-     idleTimer.cancel()
+-@@ -451,6 +452,9 @@ function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose
+-       return reconnect()
+- 
+-     !hadError && (query || sent.length) && error(Errors.connection('CONNECTION_CLOSED', options, socket))
+-+    query = results = errorResponse = null
+-+    result = new Result()
+-+    rows = 0
+-     closedTime = performance.now()
+-     hadError && options.shared.retries++
+-     delay = (typeof backoff === 'function' ? backoff(options.shared.retries) : backoff) * 1000
+-diff --git a/src/index.js b/src/index.js
+-index c7fba3dace20173f4cb13f3f138bb6d213b43683..f0888986add8ba02c8853f792ae42dd1cec88c82 100644
+---- a/src/index.js
+-+++ b/src/index.js
+-@@ -216,8 +216,19 @@ function Postgres(a, b) {
+-       : move(c, reserved)
+-     c.reserved.release = true
+- 
+-+    let closedError
+-+    c.onclose = error => {
+-+      closedError = error
+-+      while (queue.length)
+-+        queue.shift().reject(error)
+-+    }
+-+
+-     const sql = Sql(handler)
+-     sql.release = () => {
+-+      if (closedError)
+-+        return
+-+      closedError = Errors.connection('CONNECTION_RELEASED', options)
+-+      c.onclose = null
+-       c.reserved = null
+-       onopen(c)
+-     }
+-@@ -225,6 +236,8 @@ function Postgres(a, b) {
+-     return sql
+- 
+-     function handler(q) {
+-+      if (closedError)
+-+        return q.reject(closedError)
+-       c.queue === full
+-         ? queue.push(q)
+-         : c.execute(q) || move(c, full)
+-@@ -236,13 +249,19 @@ function Postgres(a, b) {
+-     const queries = Queue()
+-     let savepoints = 0
+-       , connection
+-+      , closedError
+-       , prepare = null
+- 
+-     try {
+-       await sql.unsafe('begin ' + options.replace(/[^a-z ]/ig, ''), [], { onexecute }).execute()
+-       return await Promise.race([
+-         scope(connection, fn),
+--        new Promise((_, reject) => connection.onclose = reject)
+-+        new Promise((_, reject) => connection.onclose = error => {
+-+          closedError = error
+-+          while (queries.length)
+-+            queries.shift().reject(error)
+-+          reject(error)
+-+        })
+-       ])
+-     } catch (error) {
+-       throw error
+-@@ -290,6 +309,8 @@ function Postgres(a, b) {
+- 
+-       function handler(q) {
+-         q.catch(e => uncaughtError || (uncaughtError = e))
+-+        if (closedError)
+-+          return q.reject(closedError)
+-         c.queue === full
+-           ? queries.push(q)
+-           : c.execute(q) || move(c, full)
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+index a20325bff3a0609b6bb1fb3262e7c92a35dcc48b..291c33e2a417c4db05a5bbfe2d3138e8ab8b7688 100644
+--- a/pnpm-workspace.yaml
++++ b/pnpm-workspace.yaml
+@@ -16,7 +16,6 @@ packages:
+ # Keep in sync with package.json#pnpm.patchedDependencies. Newer pnpm
+ # versions read patch configuration only from the workspace manifest.
+ patchedDependencies:
+-  postgres@3.4.9: patches/postgres@3.4.9.patch
+   embedded-postgres@18.1.0-beta.16: patches/embedded-postgres@18.1.0-beta.16.patch
+   acpx@0.12.0: patches/acpx@0.12.0.patch
+   acpx@0.13.1: patches/acpx@0.13.1.patch
