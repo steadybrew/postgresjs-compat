@@ -1,4 +1,7 @@
 {
+  "group": "Paperclip",
+  "title": "Recovery tests",
+  "description": "Paperclip's 12 connection recovery tests in `packages/db/src/postgres-connection-recovery.test.ts`, unchanged: six disconnect scenarios, each through ESM and CommonJS.",
   "repo": "paperclipai/paperclip",
   "tag": "v2026.1012.0",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",

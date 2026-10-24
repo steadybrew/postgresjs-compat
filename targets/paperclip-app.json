@@ -1,4 +1,7 @@
 {
+  "group": "Paperclip",
+  "title": "Full test suite",
+  "description": "The general and serialized test lanes of Paperclip's PR workflow, sharded as that workflow shards them, plus typecheck and build. A test that runs in more than one shard counts once.",
   "repo": "paperclipai/paperclip",
   "tag": "v2026.1012.0",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
@@ -48,5 +51,8 @@
     "pnpm test:run:serialized -- --shard-index 8 --shard-count 9",
     "pnpm typecheck && pnpm build"
   ],
-  "timeoutMinutes": 45
+  "timeoutMinutes": 45,
+  "notes": {
+    "<tmp>/server/src/__tests__/chat-channels.integration.test.ts > fails": "a test in a throwaway project that the chat suite runs to check its own sharding; it fails on purpose."
+  }
 }

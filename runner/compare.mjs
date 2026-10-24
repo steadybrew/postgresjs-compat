@@ -61,6 +61,8 @@ const summary = names.map(name => {
       id.startsWith('step: ') || bothPassing++
     else if ((passed(base) || passed(before)) && failed(after))
       regressions.push(id)
+    else if (id.startsWith('step: '))
+      continue
     else if (base === 'failed' && passed(after))
       fixed.push(id)
     else if (base === 'failed' && after === 'failed')
@@ -71,8 +73,8 @@ const summary = names.map(name => {
 })
 
 const date = new Date().toISOString().slice(0, 10)
-const link = s => '[' + s.name + '](' + (s.target.fixture ? '../fixtures/' + s.target.fixture : 'https://github.com/' + s.target.repo + '/tree/' + s.target.ref) + ')'
-const list = (title, rows) => rows.length ? ['', '### ' + title, '', ...rows.map(r => '- `' + r + '`')] : []
+const link = (s, group) => '[' + (group && s.target.title || s.name) + '](' + (s.target.fixture ? '../fixtures/' + s.target.fixture : 'https://github.com/' + s.target.repo + '/tree/' + s.target.ref) + ')'
+const list = (title, rows, notes = {}) => rows.length ? ['', '### ' + title, '', ...rows.map(r => '- `' + r + '`' + (notes[r] ? ': ' + notes[r] : ''))] : []
 const describe = run => {
   if (!run)
     return 'no result'
@@ -94,31 +96,36 @@ const threeWay = s => {
     ...runs.map(([label, r]) => '- ' + label + ': ' + describe(r))
   ]
 }
-const uses = variant => summary.filter(s => (s.target.variants || [s.target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean)).includes(variant)).map(s => s.name).join(', ') || 'none'
-const md = [
-  '# @steadybrew/postgresjs ' + version,
+const ran = s => (s.target.variants || [s.target.unchanged && 'unchanged', 'baseline', 'fork'].filter(Boolean)).map(v => ({ baseline: '3.4.9', unchanged: 'as published', fork: 'fork' })[v])
+  .sort((a, b) => ['3.4.9', 'as published', 'fork'].indexOf(a) - ['3.4.9', 'as published', 'fork'].indexOf(b)).join(', ')
+const render = (rows, group) => [
+  '# ' + (group ? group + ' on ' : '') + '@steadybrew/postgresjs ' + version,
   '',
-  'Run on ' + date + ' with `@steadybrew/postgresjs-migrate` ' + migrate + ' and PostgreSQL 17, except where a library starts its own' + (runUrl ? ' ([workflow run](' + runUrl + '))' : '') + '.',
+  'Run on ' + date + ' with `@steadybrew/postgresjs-migrate` ' + migrate + ' and ' + (rows.every(s => !s.target.databases?.length) ? 'the PostgreSQL that ' + (group || 'each library') + '\'s tests start themselves' : 'PostgreSQL 17, except where a library starts its own') + (runUrl ? ' ([workflow run](' + runUrl + '))' : '') + '.',
   '',
-  'Each library\'s own tests run on its pinned checkout, in separate jobs with fresh installs:',
+  (group ? group + '\'s' : 'Each library\'s') + ' tests run in up to three ways, each in its own job with a fresh install:',
   '',
-  '- **3.4.9**: `@steadybrew/postgresjs-migrate --switch`, then the dependency set to `postgres` 3.4.9. The switch also removes any `postgres` patch the fork already contains, so this is plain 3.4.9. Libraries: ' + uses('baseline') + '.',
-  '- **Fork**: the same switch, with `@steadybrew/postgresjs` ' + version + '. Libraries: ' + uses('fork') + '.',
-  '- **As published**: the checkout without the switch, for libraries that ship their own patched `postgres`. Libraries: ' + uses('unchanged') + '.',
+  '- **3.4.9**: plain `postgres` 3.4.9. The switch tool removes ' + (group ? group + '\'s `postgres` patch' : 'any `postgres` patch the library carries') + ', so this run has none.',
+  '- **As published**: ' + (group || 'the library') + ' exactly as published, with its own patched `postgres`.' + (group ? '' : ' Only for libraries that ship one.'),
+  '- **Fork**: `@steadybrew/postgresjs` ' + version + ', with ' + (group ? group + '\'s' : 'any `postgres`') + ' patch removed.',
   '',
-  'A regression is a test or step that passes with 3.4.9 or as published, and fails with the fork. "Passing on both", "Fixed by the fork" and "Failing on both" compare the fork with 3.4.9, or with the published checkout for a library that has no 3.4.9 run.',
+  'A regression is a test that passes with 3.4.9 or as published, and fails with the fork. The other counts compare the fork with 3.4.9, or with the published ' + (group || 'library') + ' when there is no 3.4.9 run.',
   '',
-  '| Library | Version | Passing on both | Regressions | Fixed by the fork | Failing on both |',
-  '| --- | --- | --- | --- | --- | --- |',
-  ...summary.map(s => '| ' + link(s) + ' | ' + s.target.tag + ' | ' + s.bothPassing + ' | ' + s.regressions.length + ' | ' + s.fixed.length + ' | ' + s.bothFailing.length + ' |'),
-  ...summary.flatMap(s => s.target.table || s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
-    ? ['', '## ' + s.name, ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.table ? threeWay(s) : []), ...(s.target.variants && !s.target.variants.includes('baseline') ? ['', 'This library runs no 3.4.9 job. Its columns compare the fork with the checkout as published, which uses `' + s.target.unchanged + '`.'] : []), ...list('Regressions', s.regressions), ...list('Fixed by the fork', s.fixed), ...list('Failing on both', s.bothFailing)]
+  '| ' + (group ? 'Tests' : 'Library') + ' | Version | Runs | Passing on both | Regressions | Fixed by the fork | Failing on both |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
+  ...rows.map(s => '| ' + link(s, group) + ' | ' + s.target.tag + ' | ' + ran(s) + ' | ' + s.bothPassing + ' | ' + s.regressions.length + ' | ' + s.fixed.length + ' | ' + s.bothFailing.length + ' |'),
+  ...rows.flatMap(s => s.target.table || s.harness.length || s.regressions.length || s.fixed.length || s.bothFailing.length
+    ? ['', '## ' + (group && s.target.title || s.name), ...(group && s.target.description ? ['', s.target.description] : []), ...(s.harness.length ? ['', '**Setup failed: ' + s.harness.join(', ') + '.** The results for this library are not usable.'] : []), ...(s.target.table ? threeWay(s) : []), ...(s.target.variants && !s.target.variants.includes('baseline') ? ['', 'This runs no 3.4.9 job. Its columns compare the fork with the checkout as published, which uses `' + s.target.unchanged + '`.'] : []), ...list('Regressions', s.regressions, s.target.notes), ...list('Fixed by the fork', s.fixed, s.target.notes), ...list('Failing on both', s.bothFailing, s.target.notes)]
     : [])
 ].join('\n') + '\n'
+const md = render(summary)
+const groups = [...new Set(summary.map(s => s.target.group).filter(Boolean))]
 
 if (process.env.PARTIAL !== 'true') {
   mkdirSync(resultsDir, { recursive: true })
   writeFileSync(new URL(version + '.md', resultsDir), md)
+  for (const group of groups)
+    writeFileSync(new URL(group.toLowerCase() + '-' + version + '.md', resultsDir), render(summary.filter(s => s.target.group === group), group))
   writeFileSync(new URL(version + '.json', resultsDir), JSON.stringify({
     version,
     migrate,
@@ -139,5 +146,5 @@ if (process.env.PARTIAL !== 'true') {
   }, null, 1) + '\n')
 }
 
-process.stdout.write(md)
+process.stdout.write(process.env.GROUP ? render(summary.filter(s => s.target.group === process.env.GROUP), process.env.GROUP) : md)
 process.exit(summary.some(s => s.regressions.length || s.harness.length) || !summary.length ? 1 : 0)
