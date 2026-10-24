@@ -4,6 +4,7 @@ import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, 
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
+import { reserveEither } from '../scripts/paperclip-reserve-either.mjs'
 
 const [variant, fork, outArg] = process.argv.slice(2)
 if (!['published', 'override', 'built-unchanged', 'built-fork'].includes(variant) || !fork || !outArg) {
@@ -77,11 +78,11 @@ let fixture = null
 if (steps.entries?.status === 'passed') {
   const db = entries.find(e => e.name === '@paperclipai/db')
   const response = await fetch(fixtureUrl)
-  const source = Buffer.from(await response.arrayBuffer())
+  const source = await response.text()
   steps.fixture = { status: response.ok ? 'passed' : 'failed', http: response.status }
   fixture = { url: fixtureUrl, sha256: createHash('sha256').update(source).digest('hex'), path: join(db.location, 'compat-fixtures', 'postgres-connection-recovery.mjs') }
   mkdirSync(dirname(join(app, fixture.path)), { recursive: true })
-  writeFileSync(join(app, fixture.path), source)
+  writeFileSync(join(app, fixture.path), response.ok ? reserveEither(source) : source)
 }
 
 if (steps.fixture?.status === 'passed') {
