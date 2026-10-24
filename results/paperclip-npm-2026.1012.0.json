@@ -1,7 +1,7 @@
 {
- "date": "2026-10-22",
- "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/39809854954",
- "fork": "4.6.0",
+ "date": "2026-10-24",
+ "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/40046772550",
+ "fork": "4.7.0",
  "published": {
   "variant": "published",
   "paperclip": "2026.1012.0",
@@ -89,8 +89,8 @@
   "paperclip": "2026.1012.0",
   "install": "paperclipai@2026.1012.0 from npm",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
-  "fork": "4.6.0",
-  "node": "v24.22.1",
+  "fork": "4.7.0",
+  "node": "v24.21.0",
   "manifest": {
    "name": "paperclip-packaged-check",
    "private": true,
@@ -98,7 +98,7 @@
     "paperclipai": "2026.1012.0"
    },
    "overrides": {
-    "postgres": "npm:@steadybrew/postgresjs@4.6.0"
+    "postgres": "npm:@steadybrew/postgresjs@4.7.0"
    }
   },
   "steps": {
@@ -121,9 +121,12 @@
     "location": "node_modules/paperclipai",
     "declares": "^3.4.9",
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    },
    {
@@ -132,9 +135,12 @@
     "location": "node_modules/@paperclipai/server",
     "declares": null,
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    },
    {
@@ -143,9 +149,12 @@
     "location": "node_modules/@paperclipai/db",
     "declares": "^3.4.9",
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    }
   ],
@@ -158,13 +167,13 @@
    "esm: rejects disconnected transaction work and recovers the pool": "passed",
    "esm: rejects disconnected transaction-closed work and recovers the pool": "passed",
    "esm: rejects disconnected savepoint work and recovers the pool": "passed",
-   "esm: rejects disconnected reserve work and recovers the pool": "passed",
+   "esm: rejects disconnected reserve work and recovers the pool": "failed",
    "esm: rejects disconnected transaction-queue work and recovers the pool": "passed",
    "esm: rejects disconnected reserve-queue work and recovers the pool": "passed",
    "cjs: rejects disconnected transaction work and recovers the pool": "passed",
    "cjs: rejects disconnected transaction-closed work and recovers the pool": "passed",
    "cjs: rejects disconnected savepoint work and recovers the pool": "passed",
-   "cjs: rejects disconnected reserve work and recovers the pool": "passed",
+   "cjs: rejects disconnected reserve work and recovers the pool": "failed",
    "cjs: rejects disconnected transaction-queue work and recovers the pool": "passed",
    "cjs: rejects disconnected reserve-queue work and recovers the pool": "passed"
   }
@@ -175,7 +184,7 @@
   "install": "paperclipai@2026.1012.0-compat.0 from the local registry",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
   "fork": null,
-  "node": "v24.22.0",
+  "node": "v24.21.0",
   "manifest": {
    "name": "paperclip-packaged-check",
    "private": true,
@@ -256,7 +265,7 @@
   "paperclip": "2026.1012.0",
   "install": "paperclipai@2026.1012.0-compat.0 from the local registry",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
-  "fork": "4.6.0",
+  "fork": "4.7.0",
   "node": "v24.21.0",
   "manifest": {
    "name": "paperclip-packaged-check",
@@ -283,11 +292,14 @@
     "name": "paperclipai",
     "version": "2026.1012.0-compat.0",
     "location": "node_modules/paperclipai",
-    "declares": "npm:@steadybrew/postgresjs@4.6.0",
+    "declares": "npm:@steadybrew/postgresjs@4.7.0",
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    },
    {
@@ -296,20 +308,26 @@
     "location": "node_modules/@paperclipai/server",
     "declares": null,
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    },
    {
     "name": "@paperclipai/db",
     "version": "2026.1012.0-compat.0",
     "location": "node_modules/@paperclipai/db",
-    "declares": "npm:@steadybrew/postgresjs@4.6.0",
+    "declares": "npm:@steadybrew/postgresjs@4.7.0",
     "driver": {
-     "id": "@steadybrew/postgresjs@4.6.0",
+     "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": []
+     "patched": [
+      "src/index.js",
+      "cjs/src/index.js"
+     ]
     }
    }
   ],
@@ -322,13 +340,13 @@
    "esm: rejects disconnected transaction work and recovers the pool": "passed",
    "esm: rejects disconnected transaction-closed work and recovers the pool": "passed",
    "esm: rejects disconnected savepoint work and recovers the pool": "passed",
-   "esm: rejects disconnected reserve work and recovers the pool": "passed",
+   "esm: rejects disconnected reserve work and recovers the pool": "failed",
    "esm: rejects disconnected transaction-queue work and recovers the pool": "passed",
    "esm: rejects disconnected reserve-queue work and recovers the pool": "passed",
    "cjs: rejects disconnected transaction work and recovers the pool": "passed",
    "cjs: rejects disconnected transaction-closed work and recovers the pool": "passed",
    "cjs: rejects disconnected savepoint work and recovers the pool": "passed",
-   "cjs: rejects disconnected reserve work and recovers the pool": "passed",
+   "cjs: rejects disconnected reserve work and recovers the pool": "failed",
    "cjs: rejects disconnected transaction-queue work and recovers the pool": "passed",
    "cjs: rejects disconnected reserve-queue work and recovers the pool": "passed"
   }
