@@ -26,7 +26,7 @@ const report = join(out, 'vitest.json')
 const scratch = mkdtempSync(join(process.env.RUNNER_TEMP || tmpdir(), 'compat-'))
 const repo = join(scratch, 'repo')
 const cwd = join(repo, target.workdir || '.')
-const env = { ...process.env, CI: 'true', COMPAT_ROOT: fileURLToPath(new URL('..', import.meta.url)), COMPAT_REPORTS: out, ...target.env }
+const env = { ...process.env, CI: 'true', COMPAT_ROOT: fileURLToPath(new URL('..', import.meta.url)), COMPAT_REPORTS: out, COMPAT_VARIANT: variant, ...target.env }
 const steps = {}
 
 const git = (dir, ...args) => execFileSync('git', ['-c', 'core.symlinks=false', '-c', 'core.hooksPath=/dev/null', ...args], {

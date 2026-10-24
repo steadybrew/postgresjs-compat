@@ -1,7 +1,7 @@
 {
   "group": "Paperclip",
   "title": "Recovery tests",
-  "description": "Paperclip's 12 connection recovery tests in `packages/db/src/postgres-connection-recovery.test.ts`: six disconnect scenarios, each through ESM and CommonJS. One line of their fixture is changed: after `release()` on a reserved connection that had already closed, the check accepts `CONNECTION_RELEASED` as well as `CONNECTION_CLOSED`. The diff is in each job's `prepare.diff`.",
+  "description": "Paperclip's 12 connection recovery tests in `packages/db/src/postgres-connection-recovery.test.ts`: six disconnect scenarios, each through ESM and CommonJS. On the fork one line of their fixture is changed: after `release()` on a reserved connection that had already closed, the check expects `CONNECTION_RELEASED` instead of `CONNECTION_CLOSED`. The diff is in the fork job's `prepare.diff`.",
   "repo": "paperclipai/paperclip",
   "tag": "v2026.1012.0",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
@@ -15,7 +15,7 @@
     "embedded-postgres",
     "drizzle-orm"
   ],
-  "prepare": "node \"$COMPAT_ROOT/scripts/paperclip-reserve-either.mjs\"",
+  "prepare": "node \"$COMPAT_ROOT/scripts/paperclip-reserve-released.mjs\"",
   "install": "pnpm install --no-frozen-lockfile",
   "test": "pnpm exec vitest run src/postgres-connection-recovery.test.ts --reporter=default --reporter=json --outputFile.json={report}",
   "tests": 12,

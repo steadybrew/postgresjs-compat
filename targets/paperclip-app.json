@@ -1,7 +1,7 @@
 {
   "group": "Paperclip",
   "title": "Full test suite",
-  "description": "The general and serialized test lanes of Paperclip's PR workflow, sharded as that workflow shards them, plus typecheck and build. A test that runs in more than one shard counts once. The recovery fixture has the same one-line change as the recovery tests.",
+  "description": "The general and serialized test lanes of Paperclip's PR workflow, sharded as that workflow shards them, plus typecheck and build. A test that runs in more than one shard counts once. On the fork, the recovery fixture has the same one-line change as the recovery tests.",
   "repo": "paperclipai/paperclip",
   "tag": "v2026.1012.0",
   "ref": "bba6a45f0d364cfd962ac59b3bdf2426a8222adb",
@@ -18,7 +18,7 @@
     "embedded-postgres",
     "drizzle-orm"
   ],
-  "prepare": "node \"$COMPAT_ROOT/scripts/paperclip-json-reports.mjs\" && node \"$COMPAT_ROOT/scripts/paperclip-reserve-either.mjs\"",
+  "prepare": "node \"$COMPAT_ROOT/scripts/paperclip-json-reports.mjs\" && node \"$COMPAT_ROOT/scripts/paperclip-reserve-released.mjs\"",
   "install": "pnpm install --no-frozen-lockfile",
   "shards": [
     "pnpm test:run:general -- --group general-server-without-chat --shard-index 0 --shard-count 12",
