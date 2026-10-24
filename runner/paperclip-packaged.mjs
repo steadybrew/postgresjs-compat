@@ -49,7 +49,7 @@ const packageRoot = file => {
 const driver = from => {
   const dir = packageRoot(createRequire(join(from, 'package.json')).resolve('postgres'))
   const { name, version } = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
-  const patched = ['src/index.js', 'cjs/src/index.js'].filter(f => existsSync(join(dir, f)) && readFileSync(join(dir, f), 'utf8').includes('CONNECTION_RELEASED'))
+  const patched = ['src/index.js', 'cjs/src/index.js'].filter(f => existsSync(join(dir, f)) && readFileSync(join(dir, f), 'utf8').includes("Errors.connection('CONNECTION_RELEASED'"))
   return { id: name + '@' + version, path: relative(app, dir), patched }
 }
 

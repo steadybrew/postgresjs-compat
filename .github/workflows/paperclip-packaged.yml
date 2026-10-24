@@ -150,6 +150,7 @@ jobs:
           git add results
           git diff --cached --quiet && exit 0
           git commit -m "results: Paperclip installed from npm, override to @steadybrew/postgresjs $VERSION"
+          git pull --rebase --quiet origin main
           git push
       - if: steps.report.outcome == 'failure'
         run: exit 1
