@@ -1,6 +1,6 @@
 # Paperclip 2026.1012.0 installed from npm
 
-Run on 2026-10-24 with Node v24.21.0 and PostgreSQL 17 ([workflow run](https://github.com/steadybrew/postgresjs-compat/actions/runs/40046772550)).
+Run on 2026-10-24 with Node v24.21.0 and PostgreSQL 17 ([workflow run](https://github.com/steadybrew/postgresjs-compat/actions/runs/40087393979)).
 
 Each run installs `paperclipai` with npm into an empty directory, as an npm user does, then records which `postgres` each Paperclip package resolves and whether it carries Paperclip's `postgres@3.4.9.patch`. The published runs install `paperclipai@2026.1012.0` from npm; the second adds `"overrides": { "postgres": "npm:@steadybrew/postgresjs@4.7.0" }`, a change a user can make, not how Paperclip would publish the fork.
 
@@ -10,9 +10,9 @@ The recovery tests run Paperclip's unchanged [child-process fixture](https://git
 
 | Package | Location | Published | Published, with an npm override to the fork | Rebuilt unchanged | Rebuilt with the fork as its dependency |
 | --- | --- | --- | --- | --- | --- |
-| `paperclipai` | `node_modules/paperclipai` | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `^3.4.9`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `npm:@steadybrew/postgresjs@4.7.0`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch |
-| `@paperclipai/server` | `node_modules/@paperclipai/server` | declares no `postgres`; resolves `postgres@3.4.9`, no patch | declares no `postgres`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch | declares no `postgres`; resolves `postgres@3.4.9`, no patch | declares no `postgres`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch |
-| `@paperclipai/db` | `node_modules/@paperclipai/db` | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `^3.4.9`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `npm:@steadybrew/postgresjs@4.7.0`; resolves `@steadybrew/postgresjs@4.7.0` with Paperclip's patch |
+| `paperclipai` | `node_modules/paperclipai` | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `^3.4.9`; resolves `@steadybrew/postgresjs@4.7.0`, no patch | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `npm:@steadybrew/postgresjs@4.7.0`; resolves `@steadybrew/postgresjs@4.7.0`, no patch |
+| `@paperclipai/server` | `node_modules/@paperclipai/server` | declares no `postgres`; resolves `postgres@3.4.9`, no patch | declares no `postgres`; resolves `@steadybrew/postgresjs@4.7.0`, no patch | declares no `postgres`; resolves `postgres@3.4.9`, no patch | declares no `postgres`; resolves `@steadybrew/postgresjs@4.7.0`, no patch |
+| `@paperclipai/db` | `node_modules/@paperclipai/db` | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `^3.4.9`; resolves `@steadybrew/postgresjs@4.7.0`, no patch | declares `^3.4.9`; resolves `postgres@3.4.9`, no patch | declares `npm:@steadybrew/postgresjs@4.7.0`; resolves `@steadybrew/postgresjs@4.7.0`, no patch |
 
 | Recovery test | Published | Published, with an npm override to the fork | Rebuilt unchanged | Rebuilt with the fork as its dependency |
 | --- | --- | --- | --- | --- |

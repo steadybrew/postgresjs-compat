@@ -1,6 +1,6 @@
 {
  "date": "2026-10-24",
- "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/40046772550",
+ "run": "https://github.com/steadybrew/postgresjs-compat/actions/runs/40087393979",
  "fork": "4.7.0",
  "published": {
   "variant": "published",
@@ -123,10 +123,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    },
    {
@@ -137,10 +134,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    },
    {
@@ -151,10 +145,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    }
   ],
@@ -296,10 +287,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    },
    {
@@ -310,10 +298,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    },
    {
@@ -324,10 +309,7 @@
     "driver": {
      "id": "@steadybrew/postgresjs@4.7.0",
      "path": "node_modules/postgres",
-     "patched": [
-      "src/index.js",
-      "cjs/src/index.js"
-     ]
+     "patched": []
     }
    }
   ],
