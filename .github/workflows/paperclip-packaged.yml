@@ -41,10 +41,10 @@ jobs:
       matrix:
         variant: [published, override]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
       - run: bash scripts/setup-postgres.sh paperclip_recovery
@@ -56,7 +56,7 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/paperclip_recovery
         run: node runner/paperclip-packaged.mjs "$VARIANT" "$VERSION" out
       - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: packaged-${{ matrix.variant }}
           path: out
@@ -73,10 +73,10 @@ jobs:
       matrix:
         variant: [unchanged, fork]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
       - run: bash scripts/setup-postgres.sh paperclip_recovery
@@ -120,7 +120,7 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/paperclip_recovery
         run: node runner/paperclip-packaged.mjs "$VARIANT" "$VERSION" out
       - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: packaged-built-${{ matrix.variant }}
           path: out
@@ -134,10 +134,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           pattern: packaged-*
           path: ${{ runner.temp }}/results
