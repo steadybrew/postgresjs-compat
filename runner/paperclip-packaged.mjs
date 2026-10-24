@@ -108,6 +108,7 @@ writeFileSync(join(out, 'result.json'), JSON.stringify({
   ref: target.ref,
   fork: ['override', 'built-fork'].includes(variant) ? fork : null,
   node: process.version,
+  postgres: database ? execFileSync('psql', [database, '-tAc', 'show server_version'], { encoding: 'utf8' }).trim() : null,
   manifest,
   steps,
   entries,

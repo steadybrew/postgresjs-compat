@@ -48,6 +48,8 @@ jobs:
         with:
           node-version: 24
       - run: bash scripts/setup-postgres.sh paperclip_recovery
+        env:
+          PG_VERSION: '18'
       - env:
           VARIANT: ${{ matrix.variant }}
           VERSION: ${{ needs.plan.outputs.version }}
@@ -78,6 +80,8 @@ jobs:
         with:
           node-version: 24
       - run: bash scripts/setup-postgres.sh paperclip_recovery
+        env:
+          PG_VERSION: '18'
       - run: bash scripts/local-registry.sh
       - name: Check out Paperclip
         run: |

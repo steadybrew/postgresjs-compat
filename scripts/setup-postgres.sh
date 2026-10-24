@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 [[ ${GITHUB_ACTIONS:-} == true ]] || { echo 'This setup is only for GitHub Actions' >&2; exit 1; }
-version=17
+version=${PG_VERSION:-17}
 
 if command -v pg_lsclusters >/dev/null; then
   while read -r cluster_version cluster_name; do
