@@ -31,7 +31,7 @@ const report = join(out, 'vitest.json')
 const scratch = mkdtempSync(join(process.env.RUNNER_TEMP || tmpdir(), 'compat-'))
 const repo = join(scratch, 'repo')
 const cwd = join(repo, target.workdir || '.')
-const env = { ...process.env, CI: 'true', COMPAT_ROOT: fileURLToPath(new URL('..', import.meta.url)), COMPAT_REPORTS: out, COMPAT_VARIANT: variant, ...target.env }
+const env = { ...process.env, CI: 'true', COMPAT_ROOT: fileURLToPath(new URL('..', import.meta.url)), COMPAT_REPORTS: out, ...target.env }
 const steps = {}
 
 const git = (dir, ...args) => execFileSync('git', ['-c', 'core.symlinks=false', '-c', 'core.hooksPath=/dev/null', ...args], {
@@ -41,11 +41,11 @@ const git = (dir, ...args) => execFileSync('git', ['-c', 'core.symlinks=false', 
   env: { ...process.env, GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0' }
 })
 
-const run = (step, command, dir = cwd) => {
+const run = (step, command, dir = cwd, extra = {}) => {
   const log = join(out, step + '.log')
   const fd = openSync(log, 'w')
   const started = Date.now()
-  const result = spawnSync(command, { cwd: dir, env, shell: true, stdio: ['ignore', fd, fd], timeout: (target.timeoutMinutes || 15) * 60_000 })
+  const result = spawnSync(command, { cwd: dir, env: { ...env, ...extra }, shell: true, stdio: ['ignore', fd, fd], timeout: (target.timeoutMinutes || 15) * 60_000 })
   closeSync(fd)
   steps[step] = { status: result.status === 0 ? 'passed' : 'failed', exit: result.status, seconds: Math.round((Date.now() - started) / 1000) }
   console.log(step, steps[step].status, steps[step].seconds + 's')
@@ -78,7 +78,7 @@ if (target.fixture) {
   git(repo, 'checkout', '-q', 'FETCH_HEAD')
 }
 if (target.prepare) {
-  run('prepare', target.prepare, repo)
+  run('prepare', target.prepare, repo, { COMPAT_VARIANT: variant })
   git(repo, 'add', '-A')
   git(repo, '-c', 'user.name=compat', '-c', 'user.email=compat@localhost', 'commit', '-q', '--allow-empty', '-m', 'prepare')
   writeFileSync(join(out, 'prepare.diff'), git(repo, 'show', 'HEAD'))
