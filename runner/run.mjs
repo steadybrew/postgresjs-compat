@@ -5,8 +5,13 @@ import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const [name, variant, version, migrate, outArg, shardArg] = process.argv.slice(2)
-if (!name || !['unchanged', 'baseline', 'fork'].includes(variant) || !version || !migrate || !outArg) {
-  console.error('usage: node runner/run.mjs <target> unchanged|baseline|fork <fork version> <migrate version> <out dir> [shard]')
+if (!name || !['unchanged', 'baseline', 'fork', 'upstream', 'upstream-git'].includes(variant) || !version || !migrate || !outArg) {
+  console.error('usage: node runner/run.mjs <target> unchanged|baseline|fork|upstream|upstream-git <fork version> <migrate version> <out dir> [shard]')
+  process.exit(2)
+}
+const { UPSTREAM, UPSTREAM_SHA, UPSTREAM_SHA_VERSION } = process.env
+if ((variant === 'upstream' && !UPSTREAM) || (variant === 'upstream-git' && !(UPSTREAM_SHA && UPSTREAM_SHA_VERSION))) {
+  console.error('the ' + variant + ' run needs ' + (variant === 'upstream' ? 'UPSTREAM' : 'UPSTREAM_SHA and UPSTREAM_SHA_VERSION'))
   process.exit(2)
 }
 
@@ -44,8 +49,11 @@ const run = (step, command, dir = cwd) => {
   closeSync(fd)
   steps[step] = { status: result.status === 0 ? 'passed' : 'failed', exit: result.status, seconds: Math.round((Date.now() - started) / 1000) }
   console.log(step, steps[step].status, steps[step].seconds + 's')
-  if (result.status !== 0)
-    console.log(readFileSync(log, 'utf8').split('\n').slice(-60).join('\n'))
+  if (result.status !== 0) {
+    const lines = readFileSync(log, 'utf8').split('\n')
+    console.log(lines.slice(-60).join('\n'))
+    steps[step].error = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(Boolean).slice(-3).join(' / ').slice(0, 500)
+  }
   return result.status === 0
 }
 
@@ -77,8 +85,19 @@ if (target.prepare) {
 }
 
 const alias = 'npm:@steadybrew/postgresjs@^4'
-const spec = variant === 'fork' ? 'npm:@steadybrew/postgresjs@' + version : '3.4.9'
-const want = { unchanged: target.unchanged, baseline: 'postgres@3.4.9', fork: '@steadybrew/postgresjs@' + version }[variant]
+const spec = {
+  baseline: '3.4.9',
+  fork: 'npm:@steadybrew/postgresjs@' + version,
+  upstream: UPSTREAM,
+  'upstream-git': 'https://codeload.github.com/porsager/postgres/tar.gz/' + UPSTREAM_SHA
+}[variant]
+const want = {
+  unchanged: target.unchanged,
+  baseline: 'postgres@3.4.9',
+  fork: '@steadybrew/postgresjs@' + version,
+  upstream: 'postgres@' + UPSTREAM,
+  'upstream-git': 'postgres@' + UPSTREAM_SHA_VERSION
+}[variant]
 const resolved = {}
 const versions = {}
 
@@ -136,25 +155,29 @@ if (ready) {
 }
 
 const tests = {}
+const errors = {}
+const firstLine = text => (text || '').replace(/\x1b\[[0-9;]*m/g, '').split('\n').map(l => l.trim()).find(Boolean)?.slice(0, 500) || ''
 const stable = id => id
   .replace(/^(?:\.\.\/)+(?:private\/)?tmp\/(?:.*\/)?[^/]*-[A-Za-z0-9]{6}\//, '<tmp>/')
   .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<uuid>')
   .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, '<time>')
   .replace(/\bPID \d+/g, 'PID <n>')
-const add = (id, status) => {
+const add = (id, status, error) => {
   const base = stable(id)
   let key = base
   for (let n = 2; key in tests; n++)
     key = base + ' #' + n
   tests[key] = status
+  if (status === 'failed' && error)
+    errors[key] = error
 }
 for (const json of readdirSync(out).filter(f => /^vitest(-.+)?\.json$/.test(f)).sort()) {
   for (const file of JSON.parse(readFileSync(join(out, json), 'utf8')).testResults) {
     const path = relative(repo, file.name)
     if (file.status === 'failed' && (file.message || !file.assertionResults.length))
-      add(path + ' > (file)', 'failed')
+      add(path + ' > (file)', 'failed', firstLine(file.message))
     for (const test of file.assertionResults)
-      add([path, ...test.ancestorTitles, test.title].join(' > '), test.status)
+      add([path, ...test.ancestorTitles, test.title].join(' > '), test.status, firstLine((test.failureMessages || []).join('\n')))
   }
 }
 
@@ -183,6 +206,7 @@ writeFileSync(join(out, 'result.json'), JSON.stringify({
   versions,
   steps,
   counts,
-  tests
+  tests,
+  errors
 }, null, 1) + '\n')
 console.log(Object.keys(tests).length, 'tests recorded')

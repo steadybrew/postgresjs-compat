@@ -9,7 +9,7 @@ For each library in [`targets/`](targets):
 1. Clone it at a pinned commit and run [`@steadybrew/postgresjs-migrate --switch`](https://github.com/steadybrew/postgresjs/tree/main/codemod), which sets `"postgres": "npm:@steadybrew/postgresjs@^4"`.
 2. Run its tests twice on that checkout: once with the alias replaced by `postgres` 3.4.9, once with the fork version under test.
 3. If the target ships its own patched `postgres`, such as Paperclip, also run its tests on the checkout as published, without the switch.
-4. Compare. A **regression** is a test or step that passes with 3.4.9, or on the unchanged checkout, and fails with the fork. Tests that fail with both 3.4.9 and the fork are listed but not counted, and so are tests the fork fixes. Targets with an unchanged run also get a table of every test in all three runs.
+4. Compare. Failed tests and steps keep the first line of their error. A **regression** is a test or step that passes with 3.4.9, or on the unchanged checkout, and fails with the fork. Tests that fail with both 3.4.9 and the fork are listed but not counted, and so are tests the fork fixes. Targets with an unchanged run also get a table of every test in all three runs.
 
 Test names are recorded with UUIDs, timestamps, process IDs and random temporary directories replaced by placeholders, so a test whose name carries such a value matches across runs. Each run is its own job with a fresh checkout and install. A `postgres` that pnpm patched resolves as `postgres@3.4.9 (patched)`, so the 3.4.9 and fork runs also check that no patch is left.
 
@@ -24,6 +24,8 @@ One file per fork version in [`results/`](results), written by the workflow.
 ## Running it
 
 Start the **compat** workflow from the Actions tab. Leave `version` empty to test npm `latest`, and `targets` empty to run every library.
+
+Set `upstream` to an npm version of upstream `postgres`, such as `4.0.0`, or `upstream_ref` to a branch, tag or commit of [porsager/postgres](https://github.com/porsager/postgres), such as `master`, to add a run of every library with that `postgres` in place of the fork. Each gets its own table of regressions and fixes against the same 3.4.9 or as-published run. Only fork regressions fail the workflow.
 
 ## Adding a library
 

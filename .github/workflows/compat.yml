@@ -9,6 +9,12 @@ on:
       targets:
         description: 'Target names separated by spaces (default: all)'
         required: false
+      upstream:
+        description: 'Also test this npm version of upstream postgres, such as 4.0.0 (default: none)'
+        required: false
+      upstream_ref:
+        description: 'Also test this branch, tag or commit of porsager/postgres, such as master (default: none)'
+        required: false
 
 permissions: {}
 
@@ -26,6 +32,9 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       migrate: ${{ steps.plan.outputs.migrate }}
+      upstream: ${{ steps.plan.outputs.upstream }}
+      upstream_sha: ${{ steps.plan.outputs.upstream_sha }}
+      upstream_sha_version: ${{ steps.plan.outputs.upstream_sha_version }}
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -35,6 +44,8 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           TARGETS: ${{ inputs.targets }}
+          UPSTREAM: ${{ inputs.upstream }}
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
         run: node runner/plan.mjs >> "$GITHUB_OUTPUT"
 
   run:
@@ -65,6 +76,9 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
           MIGRATE: ${{ needs.plan.outputs.migrate }}
           SHARD: ${{ matrix.shard }}
+          UPSTREAM: ${{ needs.plan.outputs.upstream }}
+          UPSTREAM_SHA: ${{ needs.plan.outputs.upstream_sha }}
+          UPSTREAM_SHA_VERSION: ${{ needs.plan.outputs.upstream_sha_version }}
         run: node runner/run.mjs "$TARGET" "$VARIANT" "$VERSION" "$MIGRATE" out $SHARD
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -96,6 +110,8 @@ jobs:
           RESULTS: ${{ runner.temp }}/results
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           PARTIAL: ${{ inputs.targets != '' }}
+          UPSTREAM: ${{ needs.plan.outputs.upstream }}
+          UPSTREAM_SHA: ${{ needs.plan.outputs.upstream_sha }}
         run: node runner/compare.mjs "$VERSION" "$MIGRATE" "$RESULTS" "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
       - if: inputs.targets == ''
         env:
